@@ -97,8 +97,8 @@ const Perfil = () => {
       </Box>
 
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
-        <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ minHeight: '60vh' }}>
-          <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ minHeight: '60vh', height: '100%' }}>
+          <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <motion.div variants={itemVariants} style={{ height: '100%' }}>
               <Paper
                 elevation={8}
@@ -113,6 +113,7 @@ const Perfil = () => {
                   justifyContent: 'center',
                   boxShadow: theme.shadows[4],
                   height: '100%',
+                  flex: 1,
                 }}
               >
                 <motion.div
@@ -145,7 +146,7 @@ const Perfil = () => {
             </motion.div>
           </Grid>
 
-          <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <motion.div variants={itemVariants} style={{ height: '100%' }}>
               <Paper
                 elevation={8}
@@ -158,6 +159,7 @@ const Perfil = () => {
                   flexDirection: 'column',
                   boxShadow: theme.shadows[4],
                   flex: 1,
+                  height: '100%',
                 }}
               >
                 <Grid container spacing={2} alignItems="stretch" sx={{ flex: 1, height: '100%' }}>

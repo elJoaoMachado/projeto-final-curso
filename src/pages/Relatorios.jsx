@@ -357,18 +357,19 @@ const Relatorios = () => {
         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <FilterList /> {t('searchFilters')}
         </Typography>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
               <InputLabel>{t('person')}</InputLabel>
               <Select
                 value={searchFilters.person}
                 label={t('person')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, person: e.target.value }))}
+                MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
               >
                 <MenuItem value="">{t('all')}</MenuItem>
                 {users.map((user) => (
-                  <MenuItem key={user.id} value={user.name}>
+                  <MenuItem key={user.id} value={user.name} sx={{ whiteSpace: 'normal' }}>
                     {user.name}
                   </MenuItem>
                 ))}
@@ -376,16 +377,17 @@ const Relatorios = () => {
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
               <InputLabel>{t('year')}</InputLabel>
               <Select
                 value={searchFilters.year}
                 label={t('year')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, year: e.target.value }))}
+                MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
               >
                 <MenuItem value="">{t('all')}</MenuItem>
                 {years.map((year) => (
-                  <MenuItem key={year} value={year}>
+                  <MenuItem key={year} value={year} sx={{ whiteSpace: 'normal' }}>
                     {year}
                   </MenuItem>
                 ))}
@@ -393,16 +395,17 @@ const Relatorios = () => {
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
               <InputLabel>{t('month')}</InputLabel>
               <Select
                 value={searchFilters.month}
                 label={t('month')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, month: e.target.value }))}
+                MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
               >
                 <MenuItem value="">{t('all')}</MenuItem>
                 {months.map((month, index) => (
-                  <MenuItem key={index} value={index}>
+                  <MenuItem key={index} value={index} sx={{ whiteSpace: 'normal' }}>
                     {t('month_' + month.toLowerCase())}
                   </MenuItem>
                 ))}
