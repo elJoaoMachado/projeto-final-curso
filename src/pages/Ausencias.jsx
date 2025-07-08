@@ -17,6 +17,14 @@ import { collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'fireb
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { CalendarToday, Add } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
+import 'dayjs/locale/pt';
+import ptLocale from '@fullcalendar/core/locales/pt';
+
+function capitalizeFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 export default function PaginaAusencias() {
   const [nome, setNome] = useState('');
@@ -32,6 +40,12 @@ export default function PaginaAusencias() {
   const auth = getAuth();
   const [showForm, setShowForm] = useState(false);
   const [absenceToDelete, setAbsenceToDelete] = useState(null);
+  const { t, i18n } = useTranslation();
+
+  // Update dayjs locale according to the language
+  React.useEffect(() => {
+    dayjs.locale(i18n.language === 'pt' ? 'pt' : 'en');
+  }, [i18n.language]);
 
   // Check admin role
   const checkAdminRole = async (user) => {
@@ -96,13 +110,14 @@ export default function PaginaAusencias() {
         // Update calendar locally
         const novaAusencia = {
           id: docRef.id,
-          title: `${nome} - ${razao}`,
-          date: dataFormatada,
+          nome,
+          razao,
+          data: dataFormatada,
           userId: auth.currentUser?.uid,
         };
 
         setAusencias((prev) => [...prev, novaAusencia]);
-        setSuccess('Absence registered successfully!');
+        setSuccess(t('absenceRegisteredSuccessfully'));
 
         // Clear form
         setNome('');
@@ -110,10 +125,10 @@ export default function PaginaAusencias() {
         setRazao('');
       } catch (error) {
         console.error('Error adding absence:', error);
-        setError('Error registering absence. Please try again.');
+        setError(t('errorRegisteringAbsence'));
       }
     } else {
-      setError('All fields must be filled.');
+      setError(t('allFieldsMustBeFilled'));
     }
   };
 
@@ -127,16 +142,16 @@ export default function PaginaAusencias() {
         const data = doc.data();
         return {
           id: doc.id,
-          title: `${data.nome} - ${data.razao}`,
-          date: data.data,
-          userId: data.userId,
           nome: data.nome,
+          razao: data.razao,
+          data: data.data,
+          userId: data.userId,
         };
       });
       setAusencias(ausenciasFirestore);
     } catch (error) {
       console.error('Error loading absences:', error);
-      setError('Error loading absences.');
+      setError(t('errorLoadingAbsences'));
     }
   };
 
@@ -149,11 +164,11 @@ export default function PaginaAusencias() {
     const user = auth.currentUser;
     const eventUserId = clickInfo.event.extendedProps.userId;
 
-    // Permitir que o admin ou o próprio usuário apague a ausência
+    // Allow admin or the user themselves to delete the absence
     if (isAdmin || user.uid === eventUserId) {
       setAbsenceToDelete(clickInfo.event);
     } else {
-      setError("You can only delete your own absences.");
+      setError(t('onlyDeleteOwnAbsences'));
     }
   };
 
@@ -162,22 +177,22 @@ export default function PaginaAusencias() {
     try {
       await deleteDoc(doc(db, 'ausencias', absenceToDelete.id));
       
-      // Remover do estado local
+      // Remove from local state
       setAusencias(prev => prev.filter(a => a.id !== absenceToDelete.id));
       setAbsenceToDelete(null);
-      setSuccess('Absence deleted successfully!');
+      setSuccess(t('absenceDeletedSuccessfully'));
     } catch (err) {
       console.error("Error deleting absence:", err);
-      setError('Error deleting absence.');
+      setError(t('errorDeletingAbsence'));
     }
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={i18n.language === 'pt' ? 'pt' : 'en'}>
       <Container maxWidth="md" sx={{ mt: 2, py: 0, px: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
-            Absences
+            {t('absences')}
           </Typography>
           <Button
             variant="contained"
@@ -185,7 +200,7 @@ export default function PaginaAusencias() {
             onClick={() => setShowForm((prev) => !prev)}
             sx={{ fontWeight: 'bold' }}
           >
-            Register Absence
+            {t('registerAbsence')}
           </Button>
         </Box>
         <Collapse in={showForm}>
@@ -193,10 +208,10 @@ export default function PaginaAusencias() {
             <CardContent>
               <Box display="flex" flexDirection="column" gap={1.5}>
                 <FormControl fullWidth>
-                  <InputLabel>Employee</InputLabel>
+                  <InputLabel>{t('employee')}</InputLabel>
                   <Select
                     value={nome}
-                    label="Employee"
+                    label={t('employee')}
                     onChange={(e) => setNome(e.target.value)}
                   >
                     {users
@@ -209,7 +224,7 @@ export default function PaginaAusencias() {
                   </Select>
                 </FormControl>
                 <DatePicker
-                  label="Absence Date"
+                  label={t('absenceDate')}
                   value={data}
                   onChange={(newValue) => setData(newValue)}
                   format="DD/MM/YYYY"
@@ -221,16 +236,16 @@ export default function PaginaAusencias() {
                   }}
                 />
                 <FormControl fullWidth>
-                  <InputLabel>Reason</InputLabel>
+                  <InputLabel>{t('reason')}</InputLabel>
                   <Select
                     value={razao}
-                    label="Reason"
+                    label={t('reason')}
                     onChange={(e) => setRazao(e.target.value)}
                   >
-                    <MenuItem value="Sick">Sick</MenuItem>
-                    <MenuItem value="Vacation">Vacation</MenuItem>
-                    <MenuItem value="Family">Family</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
+                    <MenuItem value="Sick">{t('sick')}</MenuItem>
+                    <MenuItem value="Vacation">{t('vacation')}</MenuItem>
+                    <MenuItem value="Family">{t('family')}</MenuItem>
+                    <MenuItem value="Other">{t('other')}</MenuItem>
                   </Select>
                 </FormControl>
                 <Button
@@ -239,7 +254,7 @@ export default function PaginaAusencias() {
                   startIcon={<Add />}
                   sx={{ mt: 1 }}
                 >
-                  Register
+                  {t('register')}
                 </Button>
               </Box>
             </CardContent>
@@ -249,9 +264,25 @@ export default function PaginaAusencias() {
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
-            events={ausencias}
+            events={ausencias.map(a => ({
+              title: a.nome + (a.razao ? ` (${a.razao})` : ''),
+              start: a.data,
+              allDay: true
+            }))}
+            locale={i18n.language === 'pt' ? ptLocale : undefined}
             eventClick={handleEventClick}
             height="500px"
+            titleFormat={{
+              year: 'numeric',
+              month: 'long',
+              formatter: (date) => {
+                const d = date.start || date;
+                const locale = i18n.language === 'pt' ? 'pt' : 'en';
+                const month = capitalizeFirst(dayjs(d).locale(locale).format('MMMM'));
+                const year = dayjs(d).format('YYYY');
+                return `${month} ${year}`;
+              }
+            }}
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
@@ -263,19 +294,17 @@ export default function PaginaAusencias() {
         {/* Delete Confirmation Dialog */}
         {absenceToDelete && (
           <Dialog open onClose={() => setAbsenceToDelete(null)}>
-            <DialogTitle>Delete Absence</DialogTitle>
+            <DialogTitle>{t('deleteAbsence')}</DialogTitle>
             <DialogContent>
               <Typography>
-                Are you sure you want to delete the absence for{' '}
-                <strong>{absenceToDelete.extendedProps.nome}</strong> on{' '}
+                {t('areYouSureYouWantToDeleteTheAbsenceFor')}
+                <strong>{absenceToDelete.extendedProps.nome}</strong> {t('on')}
                 <strong>{dayjs(absenceToDelete.start).format('DD/MM/YYYY')}</strong>?
               </Typography>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setAbsenceToDelete(null)}>Cancel</Button>
-              <Button onClick={handleDeleteAbsence} color="error">
-                Yes, Delete
-              </Button>
+              <Button onClick={() => setAbsenceToDelete(null)}>{t('cancel')}</Button>
+              <Button onClick={handleDeleteAbsence} color="error">{t('yesDelete')}</Button>
             </DialogActions>
           </Dialog>
         )}

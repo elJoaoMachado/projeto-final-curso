@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Add as AddIcon, Delete as DeleteIcon, AttachMoney as MoneyIcon, Description as DescriptionIcon, PictureAsPdf as PdfIcon, Search, FilterList } from '@mui/icons-material';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -39,6 +40,7 @@ const Despesas = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const [showAdminSnackbar, setShowAdminSnackbar] = useState(false);
+  const { t } = useTranslation();
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -149,7 +151,7 @@ const Despesas = () => {
     return () => unsubscribe();
   }, [auth, checkAdminRole, navigate]);
 
-  // Verifica se o admin acabou de logar
+  // Check if the admin just logged in
   if (localStorage.getItem('adminJustLoggedIn') === 'true') {
     setShowAdminSnackbar(true);
     localStorage.removeItem('adminJustLoggedIn');
@@ -338,7 +340,7 @@ const Despesas = () => {
     <Box sx={{ py: 2, px: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
-          Expenses
+          {t('expenses')}
         </Typography>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
@@ -348,7 +350,7 @@ const Despesas = () => {
             onClick={() => setOpenForm(true)}
             sx={{ fontWeight: 'bold' }}
           >
-            New Expense
+            {t('newExpense')}
           </Button>
         </motion.div>
       </Box>
@@ -360,18 +362,18 @@ const Despesas = () => {
         {/* Search Filters */}
         <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FilterList /> Search Filters
+            <FilterList /> {t('searchFilters')}
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Person</InputLabel>
+                <InputLabel>{t('person')}</InputLabel>
                 <Select
                   value={searchFilters.person}
-                  label="Person"
+                  label={t('person')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, person: e.target.value }))}
                 >
-                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="">{t('all')}</MenuItem>
                   {users.map((user) => (
                     <MenuItem key={user.id} value={user.name}>
                       {user.name}
@@ -382,13 +384,13 @@ const Despesas = () => {
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Year</InputLabel>
+                <InputLabel>{t('year')}</InputLabel>
                 <Select
                   value={searchFilters.year}
-                  label="Year"
+                  label={t('year')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, year: e.target.value }))}
                 >
-                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="">{t('all')}</MenuItem>
                   {years.map((year) => (
                     <MenuItem key={year} value={year}>
                       {year}
@@ -399,16 +401,16 @@ const Despesas = () => {
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Month</InputLabel>
+                <InputLabel>{t('month')}</InputLabel>
                 <Select
                   value={searchFilters.month}
-                  label="Month"
+                  label={t('month')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, month: e.target.value }))}
                 >
-                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="">{t('all')}</MenuItem>
                   {months.map((month, index) => (
                     <MenuItem key={index} value={index}>
-                      {month}
+                      {t('month_' + month.toLowerCase())}
                     </MenuItem>
                   ))}
                 </Select>
@@ -416,16 +418,16 @@ const Despesas = () => {
             </Grid>
             <Grid item xs={12} sm={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Type</InputLabel>
+                <InputLabel>{t('type')}</InputLabel>
                 <Select
                   value={searchFilters.type}
-                  label="Type"
+                  label={t('type')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value }))}
                 >
-                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="">{t('all')}</MenuItem>
                   {expenseTypes.map((type) => (
                     <MenuItem key={type} value={type}>
-                      {type}
+                      {t('expenseType_' + type.toLowerCase())}
                     </MenuItem>
                   ))}
                 </Select>
@@ -462,18 +464,18 @@ const Despesas = () => {
                         >
                           <Card>
                             <CardContent sx={{ pb: 1 }}>
-                              <Typography variant="h6" sx={{ color: despesa.tipo === 'Food' ? '#1a237e' : 'primary.main', fontWeight: 'bold', mb: 2 }}>
-                                {despesa.tipo}
+                              <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
+                                {t('expenseType_' + (['Food','Transport','Accommodation','Other'].includes(despesa.tipo) ? despesa.tipo.toLowerCase() : 'other'))}
                               </Typography>
                               <Typography variant="body1" sx={{ mb: 1 }}>
-                                <strong>Value:</strong> {despesa.valor} €
+                                <strong>{t('value')}:</strong> {despesa.valor} €
                               </Typography>
                               <Typography variant="body1" sx={{ mb: 1 }}>
-                                <strong>Date:</strong> {new Date(despesa.data).toLocaleDateString()}
+                                <strong>{t('date')}:</strong> {new Date(despesa.data).toLocaleDateString()}
                               </Typography>
                               {isAdmin && (
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  <strong>Registered by:</strong> {despesa.userName}
+                                  <strong>{t('registeredBy')}:</strong> {despesa.userName}
                                 </Typography>
                               )}
                               {despesa.arquivoURL && (
@@ -490,14 +492,14 @@ const Despesas = () => {
                                       },
                                     }}
                                   >
-                                    View Receipt
+                                    {t('viewReceipt')}
                                   </Button>
                                 </Box>
                               )}
                             </CardContent>
                             <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
                               {(isAdmin || despesa.userId === auth.currentUser?.uid) && (
-                                <Tooltip title="Delete">
+                                <Tooltip title={t('delete')}>
                                   <IconButton
                                     onClick={() => handleDelete(despesa.id, despesa.arquivoURL)}
                                     sx={{
@@ -527,11 +529,23 @@ const Despesas = () => {
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={handleChangeRowsPerPage}
               rowsPerPageOptions={[6, 12, 24]}
+              labelRowsPerPage={t('rowsPerPage')}
+              sx={{
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                  lineHeight: '32px',
+                  verticalAlign: 'middle',
+                },
+                '& .MuiInputBase-root': {
+                  verticalAlign: 'middle',
+                  marginTop: '-6px',
+                  transform: 'translateY(-2px)',
+                }
+              }}
             />
           </>
         ) : (
           <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', mt: 4 }}>
-            No expenses found.
+            {t('noExpensesFound')}
           </Typography>
         )}
 
@@ -548,19 +562,19 @@ const Despesas = () => {
           }}
         >
           <DialogTitle sx={{ color: '#1a237e', fontWeight: 'bold' }}>
-            New Expense
+            {t('newExpense')}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
               <TextField
-                label="Type"
+                label={t('type')}
                 value={newDespesa.tipo}
                 onChange={(e) => setNewDespesa(prev => ({ ...prev, tipo: e.target.value }))}
                 select
                 fullWidth
                 required
                 error={!newDespesa.tipo && openForm}
-                helperText={!newDespesa.tipo && openForm ? "Type is required" : ""}
+                helperText={!newDespesa.tipo && openForm ? t('typeRequired') : ""}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -569,21 +583,21 @@ const Despesas = () => {
                   },
                 }}
               >
-                <MenuItem value="Food">Food</MenuItem>
-                <MenuItem value="Transport">Transport</MenuItem>
-                <MenuItem value="Accommodation">Accommodation</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                <MenuItem value="Food">{t('expenseType_food')}</MenuItem>
+                <MenuItem value="Transport">{t('expenseType_transport')}</MenuItem>
+                <MenuItem value="Accommodation">{t('expenseType_accommodation')}</MenuItem>
+                <MenuItem value="Other">{t('expenseType_other')}</MenuItem>
               </TextField>
               
               <TextField
-                label="Value"
+                label={t('value')}
                 type="number"
                 value={newDespesa.valor}
                 onChange={(e) => setNewDespesa(prev => ({ ...prev, valor: e.target.value }))}
                 fullWidth
                 required
                 error={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && openForm}
-                helperText={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && openForm ? "Value must be greater than zero" : ""}
+                helperText={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && openForm ? t('valueRequired') : ""}
                 inputProps={{ min: "0", step: "0.01" }}
                 InputProps={{
                   endAdornment: <Typography>€</Typography>,
@@ -598,14 +612,14 @@ const Despesas = () => {
               />
               
               <TextField
-                label="Date"
+                label={t('date')}
                 type="date"
                 value={newDespesa.data}
                 onChange={(e) => setNewDespesa(prev => ({ ...prev, data: e.target.value }))}
                 fullWidth
                 required
                 error={!newDespesa.data && openForm}
-                helperText={!newDespesa.data && openForm ? "Date is required" : ""}
+                helperText={!newDespesa.data && openForm ? t('dateRequired') : ""}
                 InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -630,7 +644,7 @@ const Despesas = () => {
                   },
                 }}
               >
-                {newDespesa.arquivo ? newDespesa.arquivo.name : 'Attach Receipt'}
+                {newDespesa.arquivo ? newDespesa.arquivo.name : t('attachReceipt')}
                 <input
                   type="file"
                   hidden
@@ -643,7 +657,7 @@ const Despesas = () => {
                 <Box sx={{ width: '100%', mt: 2 }}>
                   <LinearProgress variant="determinate" value={uploadProgress} />
                   <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
-                    {Math.round(uploadProgress)}% uploaded
+                    {Math.round(uploadProgress)}% {t('uploaded')}
                   </Typography>
                 </Box>
               )}
@@ -660,7 +674,7 @@ const Despesas = () => {
                 },
               }}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -675,7 +689,7 @@ const Despesas = () => {
                 },
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Save'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : t('save')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -705,7 +719,7 @@ const Despesas = () => {
 
         <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
           <Alert onClose={() => setShowAdminSnackbar(false)} severity="info" sx={{ width: '100%' }}>
-            You are logged in as admin.
+            {t('adminLoggedIn')}
           </Alert>
         </Snackbar>
       </motion.div>

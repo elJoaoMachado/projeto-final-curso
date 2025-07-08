@@ -4,6 +4,7 @@ import {Drawer, List, ListItem, ListItemIcon, ListItemText,CssBaseline, Toolbar,
 import {Menu as MenuIcon, Person as PersonIcon, EventNote as EventNoteIcon,Assessment as AssessmentIcon, AttachMoney as AttachMoneyIcon, Brightness4, Brightness7} from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from 'react-i18next';
 
 import Perfil from "./pages/Perfil";
 import Ausencias from "./pages/Ausencias";
@@ -15,6 +16,7 @@ import PrivateRoute from "./PrivateRoute";
 import { AuthProvider } from "./AuthContext";
 import logo from "./pages/logoTechnoSoftware.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import FloatingLangButton from './FloatingLangButton';
 
 const drawerWidth = 240;
 const collapsedWidth = 70;
@@ -26,6 +28,7 @@ const lightBlue = "#4f8cff";
 const Sidebar = ({ open, toggleDrawer }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation();
 
   return (
     <Drawer
@@ -62,11 +65,11 @@ const Sidebar = ({ open, toggleDrawer }) => {
         </Toolbar>
         <List sx={{ px: 1.5 }}>
           {[
-            { text: "Profile", icon: <PersonIcon />, path: "/perfil" },
-            { text: "Employees", icon: <PersonIcon />, path: "/colaboradores" },
-            { text: "Absences", icon: <EventNoteIcon />, path: "/ausencias" },
-            { text: "Reports", icon: <AssessmentIcon />, path: "/relatorios" },
-            { text: "Expenses", icon: <AttachMoneyIcon />, path: "/despesas" },
+            { text: t('profile'), icon: <PersonIcon />, path: "/perfil" },
+            { text: t('employees'), icon: <PersonIcon />, path: "/colaboradores" },
+            { text: t('absences'), icon: <EventNoteIcon />, path: "/ausencias" },
+            { text: t('reports'), icon: <AssessmentIcon />, path: "/relatorios" },
+            { text: t('expenses'), icon: <AttachMoneyIcon />, path: "/despesas" },
           ].map(({ text, icon, path }, index) => (
             <motion.div
               key={text}
@@ -123,7 +126,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Tooltip title={open ? "" : "Logout"} placement="right">
+          <Tooltip title={open ? "" : t('logout')} placement="right">
             <ListItem
               button
               component={Link}
@@ -150,7 +153,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
               </ListItemIcon>
               {open && (
                 <ListItemText 
-                  primary="Logout" 
+                  primary={t('logout')} 
                   sx={{ 
                     color: theme.palette.text.primary,
                     '& .MuiTypography-root': {
@@ -174,6 +177,7 @@ const AppContent = () => {
   const toggleDrawer = () => setOpen(!open);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation();
 
   const location = useLocation();
   const hideSidebar = location.pathname === "/";
@@ -289,7 +293,7 @@ const AppContent = () => {
                 TechnoSoftware Dashboard
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', gap: 1.5 }}>
-                <Tooltip title={mode === 'light' ? 'Enable dark theme' : 'Enable light theme'}>
+                <Tooltip title={mode === 'light' ? t('enableDarkTheme') : t('enableLightTheme')}>
                   <IconButton 
                     onClick={toggleColorMode} 
                     color="inherit"
@@ -353,6 +357,7 @@ const AppContent = () => {
           </Container>
         </Box>
       </Box>
+      <FloatingLangButton />
     </ThemeProvider>
   );
 };

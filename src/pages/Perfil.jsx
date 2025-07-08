@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Avatar, Paper, Grid, Card, CardContent, Divider, useTheme, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import {
+  Box, Typography, Avatar, Paper, Grid, Card, CardContent,
+  Divider, useTheme, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button
+} from "@mui/material";
 import { getAuth } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { motion } from 'framer-motion';
-import { Person as PersonIcon, Work as WorkIcon, Business as BusinessIcon, CalendarToday as CalendarIcon } from '@mui/icons-material';
+import { Work as WorkIcon, Business as BusinessIcon, CalendarToday as CalendarIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 const Perfil = () => {
   const [userData, setUserData] = useState(null);
@@ -13,6 +18,7 @@ const Perfil = () => {
   const auth = getAuth();
   const user = auth.currentUser;
   const theme = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -29,7 +35,6 @@ const Perfil = () => {
   }, [user]);
 
   useEffect(() => {
-    // Buscar todos os usuários para saber quem é admin
     const fetchUsers = async () => {
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const usersList = usersSnapshot.docs.map(doc => doc.data());
@@ -45,7 +50,6 @@ const Perfil = () => {
       const ausenciasRef = collection(db, 'ausencias');
       const snapshot = await getDocs(ausenciasRef);
       const ausencias = snapshot.docs.map(doc => doc.data());
-      // Mostrar todas as ausências do dia para admin
       const ausentesHoje = ausencias.filter(a => {
         if (!a.data) return false;
         const dataAusencia = new Date(a.data);
@@ -61,7 +65,7 @@ const Perfil = () => {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
-          Loading profile...
+          {t('loading')}
         </Typography>
       </Box>
     );
@@ -71,9 +75,7 @@ const Perfil = () => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -82,39 +84,35 @@ const Perfil = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: {
-        duration: 0.5
-      }
+      transition: { duration: 0.5 }
     }
   };
 
   return (
-    <Box sx={{ py: 2, px: 2 }}>
+    <Box sx={{ py: 2, px: 2, minHeight: '100vh', height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontFamily: "'Poppins', sans-serif", ml: 0 }}>
-          Profile
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontFamily: "'Poppins', sans-serif" }}>
+          {t('profile')}
         </Typography>
-        {/* Se quiseres adicionar um botão de ação no perfil, coloca-o aqui */}
       </Box>
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <Grid container spacing={3} alignItems="flex-start">
-          <Grid item xs={12} md={4}>
-            <motion.div variants={itemVariants}>
+
+      <motion.div variants={containerVariants} initial="hidden" animate="visible">
+        <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ minHeight: '60vh' }}>
+          <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column' }}>
+            <motion.div variants={itemVariants} style={{ height: '100%' }}>
               <Paper
                 elevation={8}
                 sx={{
-                  p: 3,
+                  p: 6,
                   borderRadius: 4,
                   background: theme.palette.background.paper,
-                  height: '100%',
+                  minHeight: 400,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   boxShadow: theme.shadows[4],
+                  height: '100%',
                 }}
               >
                 <motion.div
@@ -134,167 +132,80 @@ const Perfil = () => {
                     }}
                   />
                 </motion.div>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 'bold',
-                    color: theme.palette.primary.main,
-                    mb: 1,
-                    fontFamily: "'Poppins', sans-serif",
-                  }}
-                >
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 1, fontFamily: "'Poppins', sans-serif" }}>
                   {userData.name || 'No name'}
                 </Typography>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    color: theme.palette.text.secondary,
-                    mb: 2,
-                    fontFamily: "'Poppins', sans-serif",
-                  }}
-                >
+                <Typography variant="subtitle1" sx={{ color: theme.palette.text.secondary, mb: 2, fontFamily: "'Poppins', sans-serif" }}>
                   {userData.email}
                 </Typography>
-                <Divider sx={{ width: '100%', mb: 2 }} />
-                <Box sx={{ width: '100%' }}>
-                  <Card sx={{ mb: 1, background: theme.palette.action.hover, p: { xs: 0.5, sm: 1 }, width: '100%' }}>
-                    <CardContent sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 1, py: 1.5, minHeight: 56 }}>
-                      <WorkIcon sx={{ color: theme.palette.primary.main, fontSize: 20, m: 0 }} />
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-                          Position
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'medium', color: theme.palette.text.primary, fontSize: 14 }}>
-                          {userData.role || 'Not defined'}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                  <Card sx={{ mb: 1, background: theme.palette.action.hover, p: { xs: 0.5, sm: 1 }, width: '100%' }}>
-                    <CardContent sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 1, py: 1.5, minHeight: 56 }}>
-                      <BusinessIcon sx={{ color: theme.palette.primary.main, fontSize: 20, m: 0 }} />
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-                          Department
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'medium', color: theme.palette.text.primary, fontSize: 14 }}>
-                          {userData.department || 'Not defined'}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                  <Card sx={{ background: theme.palette.action.hover, p: { xs: 0.5, sm: 1 }, width: '100%' }}>
-                    <CardContent sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 1, py: 1.5, minHeight: 56 }}>
-                      <CalendarIcon sx={{ color: theme.palette.primary.main, fontSize: 20, m: 0 }} />
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-                          Admission Date
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'medium', color: theme.palette.text.primary, fontSize: 14 }}>
-                          {userData.date || '---'}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                <Box sx={{ mt: 2 }}>
+                  <DefinirSenhaButton email={userData.email} />
                 </Box>
               </Paper>
             </motion.div>
           </Grid>
-          <Grid item xs={12} md={8}>
-            <motion.div variants={itemVariants}>
+
+          <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column' }}>
+            <motion.div variants={itemVariants} style={{ height: '100%' }}>
               <Paper
                 elevation={8}
                 sx={{
-                  p: 3,
+                  p: 6,
                   borderRadius: 4,
                   background: theme.palette.background.paper,
-                  height: '100%',
+                  minHeight: 400,
+                  display: 'flex',
+                  flexDirection: 'column',
                   boxShadow: theme.shadows[4],
+                  flex: 1,
                 }}
               >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 'bold',
-                    color: theme.palette.primary.main,
-                    mb: 2,
-                    fontFamily: "'Poppins', sans-serif",
-                  }}
-                >
-                  Profile Information
-                </Typography>
-                <Grid container spacing={2} alignItems="stretch">
+                <Grid container spacing={2} alignItems="stretch" sx={{ flex: 1, height: '100%' }}>
                   <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Card sx={{ background: theme.palette.action.hover, height: '100%' }}>
-                      <CardContent sx={{ py: 2 }}>
-                        <Typography variant="h6" sx={{ mb: 1.5, color: theme.palette.primary.main }}>
-                          Personal Data
+                    <Card sx={{ background: theme.palette.action.hover, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif" }}>
+                          {t('professionalData')}
                         </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Full Name
-                            </Typography>
-                            <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
-                              {userData.name || 'Not defined'}
-                            </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <WorkIcon sx={{ color: theme.palette.primary.main }} />
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">{t('position')}</Typography>
+                              <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>{userData.role || t('notDefined')}</Typography>
+                            </Box>
                           </Box>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Email
-                            </Typography>
-                            <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
-                              {userData.email || 'Not defined'}
-                            </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <BusinessIcon sx={{ color: theme.palette.primary.main }} />
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">{t('department')}</Typography>
+                              <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>{userData.department || t('notDefined')}</Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CalendarIcon sx={{ color: theme.palette.primary.main }} />
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">{t('admissionDate')}</Typography>
+                              <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>{userData.date || '---'}</Typography>
+                            </Box>
                           </Box>
                         </Box>
                       </CardContent>
                     </Card>
                   </Grid>
-                  <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Card sx={{ background: theme.palette.action.hover, height: '100%' }}>
-                      <CardContent sx={{ py: 2 }}>
-                        <Typography variant="h6" sx={{ mb: 1.5, color: theme.palette.primary.main }}>
-                          Professional Data
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Position
-                            </Typography>
-                            <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
-                              {userData.role || 'Not defined'}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Department
-                            </Typography>
-                            <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
-                              {userData.department || 'Not defined'}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Admission Date
-                            </Typography>
-                            <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
-                              {userData.date || '---'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12}>
-                    {userData.isAdmin === true && (
-                      <Card sx={{ background: theme.palette.action.hover, mt: 2 }}>
-                        <CardContent sx={{ py: 2 }}>
-                          <Typography variant="h6" sx={{ mb: 1.5, color: theme.palette.primary.main }}>
-                            {`Ausências - ${new Date().toLocaleDateString()}`}
+
+                  {userData.isAdmin === true && (
+                    <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Card sx={{ background: theme.palette.action.hover, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <CardContent sx={{ flexGrow: 1 }}>
+                          <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif" }}>
+                            {t('absences')}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            {new Date().toLocaleDateString()}
                           </Typography>
                           {ausenciasHoje.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary">Ninguém está de férias hoje.</Typography>
+                            <Typography variant="body2" color="text.secondary">{t('noAbsences')}</Typography>
                           ) : (
                             <TableContainer>
                               <Table size="small">
@@ -317,8 +228,8 @@ const Perfil = () => {
                           )}
                         </CardContent>
                       </Card>
-                    )}
-                  </Grid>
+                    </Grid>
+                  )}
                 </Grid>
               </Paper>
             </motion.div>
@@ -328,5 +239,32 @@ const Perfil = () => {
     </Box>
   );
 };
+
+function DefinirSenhaButton({ email }) {
+  const [enviado, setEnviado] = useState(false);
+  const [erro, setErro] = useState('');
+  const auth = getAuth();
+  const { t } = useTranslation();
+
+  const handleClick = async () => {
+    setErro('');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setEnviado(true);
+    } catch (e) {
+      setErro(e.message);
+    }
+  };
+
+  return (
+    <Box>
+      <Button variant="outlined" onClick={handleClick} disabled={enviado}>
+        {enviado ? t('emailSent') : t('Define your password for your email login')}
+      </Button>
+      {erro && <Typography color="error">{erro}</Typography>}
+      {enviado && <Typography color="success.main">{t('Check your Email to set your password')}</Typography>}
+    </Box>
+  );
+}
 
 export default Perfil;

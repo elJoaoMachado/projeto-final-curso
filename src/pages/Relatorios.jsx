@@ -13,10 +13,11 @@ import { storage } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { Search, FilterList, Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -42,6 +43,7 @@ const Relatorios = () => {
   const [showAdminSnackbar, setShowAdminSnackbar] = useState(false);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const { t } = useTranslation();
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -173,7 +175,7 @@ const Relatorios = () => {
     return () => unsubscribe();
   }, [auth, checkAdminRole, fetchPdfFiles, navigate]);
 
-  // Verifica se o admin acabou de logar
+  // Check if the admin just logged in
   if (localStorage.getItem('adminJustLoggedIn') === 'true') {
     setShowAdminSnackbar(true);
     localStorage.removeItem('adminJustLoggedIn');
@@ -236,6 +238,27 @@ const Relatorios = () => {
         try {
           const snapshot = await uploadBytes(storageRef, file, metadata);
           const url = await getDownloadURL(snapshot.ref);
+          
+          // Get user name from Firestore
+          let userName = 'Desconhecido';
+          try {
+            const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+            if (userDoc.exists()) {
+              userName = userDoc.data().name || user.displayName || 'Desconhecido';
+            }
+          } catch (e) {
+            console.error('Error getting user name:', e);
+          }
+          
+          // Create document in Firestore for email notification
+          await addDoc(collection(db, 'relatorios'), {
+            nome: userName,
+            userId: user.uid,
+            fileName: file.name,
+            fileUrl: url,
+            uploadedAt: new Date().toISOString()
+          });
+          
           return { 
             name: file.name, 
             url: url,
@@ -315,7 +338,7 @@ const Relatorios = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', padding: 2, position: 'relative', minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
-          Reports
+          {t('reports')}
         </Typography>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
@@ -325,25 +348,25 @@ const Relatorios = () => {
             onClick={handleOpenUploadDialog}
             sx={{ fontWeight: 'bold' }}
           >
-            New PDF
+            {t('newPDF')}
           </Button>
         </motion.div>
       </Box>
       {/* Search Filters */}
       <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <FilterList /> Search Filters
+          <FilterList /> {t('searchFilters')}
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth size="small">
-              <InputLabel>Person</InputLabel>
+              <InputLabel>{t('person')}</InputLabel>
               <Select
                 value={searchFilters.person}
-                label="Person"
+                label={t('person')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, person: e.target.value }))}
               >
-                <MenuItem value="">All</MenuItem>
+                <MenuItem value="">{t('all')}</MenuItem>
                 {users.map((user) => (
                   <MenuItem key={user.id} value={user.name}>
                     {user.name}
@@ -354,13 +377,13 @@ const Relatorios = () => {
           </Grid>
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth size="small">
-              <InputLabel>Year</InputLabel>
+              <InputLabel>{t('year')}</InputLabel>
               <Select
                 value={searchFilters.year}
-                label="Year"
+                label={t('year')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, year: e.target.value }))}
               >
-                <MenuItem value="">All</MenuItem>
+                <MenuItem value="">{t('all')}</MenuItem>
                 {years.map((year) => (
                   <MenuItem key={year} value={year}>
                     {year}
@@ -371,16 +394,16 @@ const Relatorios = () => {
           </Grid>
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth size="small">
-              <InputLabel>Month</InputLabel>
+              <InputLabel>{t('month')}</InputLabel>
               <Select
                 value={searchFilters.month}
-                label="Month"
+                label={t('month')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, month: e.target.value }))}
               >
-                <MenuItem value="">All</MenuItem>
+                <MenuItem value="">{t('all')}</MenuItem>
                 {months.map((month, index) => (
                   <MenuItem key={index} value={index}>
-                    {month}
+                    {t('month_' + month.toLowerCase())}
                   </MenuItem>
                 ))}
               </Select>
@@ -404,10 +427,10 @@ const Relatorios = () => {
                       {isAdmin && (
                         <>
                           <Typography variant="caption" color="text.secondary">
-                            Uploaded by: {fileObj.uploadedBy}
+                            {t('uploadedBy')}: {fileObj.uploadedBy}
                           </Typography>
                           <Typography variant="caption" color="text.secondary" display="block">
-                            Date: {new Date(fileObj.uploadedAt).toLocaleString()}
+                            {t('date')}: {new Date(fileObj.uploadedAt).toLocaleString()}
                           </Typography>
                         </>
                       )}
@@ -446,11 +469,23 @@ const Relatorios = () => {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[6, 12, 24]}
+            labelRowsPerPage={t('rowsPerPage')}
+            sx={{
+              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                lineHeight: '32px',
+                verticalAlign: 'middle',
+              },
+              '& .MuiInputBase-root': {
+                verticalAlign: 'middle',
+                marginTop: '-6px',
+                transform: 'translateY(-2px)',
+              }
+            }}
           />
         </>
       ) : (
         <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', mt: 4 }}>
-          No PDF files found.
+          {t('noPdfFilesFound')}
         </Typography>
       )}
 
@@ -522,7 +557,7 @@ const Relatorios = () => {
             sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}
             startIcon={<PictureAsPdf sx={{ color: '#1a237e' }} />}
           >
-            Attach Report
+            {t('attachReport')}
             <input
               type="file"
               accept="application/pdf"
@@ -545,7 +580,7 @@ const Relatorios = () => {
         <DialogActions>
           <Button onClick={handleCloseUploadDialog}>Cancel</Button>
           <Button onClick={handleUploadSelectedFiles} variant="contained" disabled={selectedFiles.length === 0 || loading}>
-            {loading ? <CircularProgress size={20} /> : 'Upload'}
+            {loading ? <CircularProgress size={20} /> : t('upload')}
           </Button>
         </DialogActions>
       </Dialog>

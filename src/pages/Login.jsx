@@ -7,6 +7,7 @@ import googleLogo from "../pages/google-logo.png";
 import logo from "../pages/logoTechnoSoftware.png";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import { motion } from "framer-motion";
+import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate(); 
   const db = getFirestore();
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     try {
@@ -35,7 +37,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Verifica se é admin
+      // Check if the user is an admin
       const userData = querySnapshot.docs[0].data();
       if (userData.isAdmin === true) {
         localStorage.setItem('adminJustLoggedIn', 'true');
@@ -78,7 +80,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Verifica se é admin
+      // Check if the user is an admin
       const userData = querySnapshot.docs[0].data();
       if (userData.isAdmin === true) {
         localStorage.setItem('adminJustLoggedIn', 'true');
@@ -162,7 +164,7 @@ export default function LoginPage() {
             letterSpacing: 1,
           }}
         >
-          Welcome
+          {t('welcome')}
         </Typography>
         {error && (
           <motion.div
@@ -177,7 +179,7 @@ export default function LoginPage() {
         )}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: '100%', maxWidth: 400, mx: 'auto' }}>
           <TextField
-            label="Email"
+            label={t('email')}
             type="email"
             fullWidth
             value={email}
@@ -197,7 +199,7 @@ export default function LoginPage() {
             InputLabelProps={{ style: { color: '#fff' } }}
           />
           <TextField
-            label="Password"
+            label={t('password')}
             type="password"
             fullWidth
             value={password}
@@ -242,7 +244,7 @@ export default function LoginPage() {
                 },
               }}
             >
-              {isLoading ? "Signing in..." : "SIGN IN"}
+              {isLoading ? t('signingIn') : t('signIn')}
             </Button>
           </motion.div>
           <Typography
@@ -250,7 +252,7 @@ export default function LoginPage() {
             align="center"
             sx={{ color: "#fff", my: 1.5 }}
           >
-            or
+            {t('or')}
           </Typography>
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
@@ -278,7 +280,7 @@ export default function LoginPage() {
                 },
               }}
             >
-              {isLoading ? "Signing in..." : "Sign in with Google"}
+              {isLoading ? t('signingIn') : t('signInWithGoogle')}
             </Button>
           </motion.div>
         </Box>
