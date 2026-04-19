@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Avatar, Paper, Grid, Card, CardContent,
-  Divider, useTheme, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button
+  useTheme, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button
 } from "@mui/material";
 import { getAuth } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -14,7 +14,6 @@ import { sendPasswordResetEmail } from 'firebase/auth';
 const Perfil = () => {
   const [userData, setUserData] = useState(null);
   const [ausenciasHoje, setAusenciasHoje] = useState([]);
-  const [users, setUsers] = useState([]);
   const auth = getAuth();
   const user = auth.currentUser;
   const theme = useTheme();
@@ -33,15 +32,6 @@ const Perfil = () => {
 
     fetchUserData();
   }, [user]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const usersList = usersSnapshot.docs.map(doc => doc.data());
-      setUsers(usersList);
-    };
-    fetchUsers();
-  }, []);
 
   useEffect(() => {
     const fetchAusenciasHoje = async () => {

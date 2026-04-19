@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { TextField, Button, Container, Typography, Box, Alert, Paper } from "@mui/material";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, browserPopupRedirectResolver } from "firebase/auth";
+import { TextField, Button, Typography, Box, Alert } from "@mui/material";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, browserPopupRedirectResolver, signOut } from "firebase/auth";
 import { auth } from "../FirebaseConfig";
 import { useNavigate } from "react-router-dom"; // Navegação via React Router
 import googleLogo from "../pages/google-logo.png";
@@ -31,7 +31,7 @@ export default function LoginPage() {
       
       if (querySnapshot.empty) {
         // If user doesn't exist in database, logout and show error
-        await auth.signOut();
+        await signOut(auth);
         setError("User not found. Please try again.");
         navigate("/");
         return;
@@ -74,7 +74,7 @@ export default function LoginPage() {
       
       if (querySnapshot.empty) {
         // If user doesn't exist in database, logout and show error
-        await auth.signOut();
+        await signOut(auth);
         setError("User not found. Please try again.");
         navigate("/");
         return;

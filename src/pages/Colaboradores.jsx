@@ -11,7 +11,6 @@ import { db } from '../FirebaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Select, MenuItem, InputLabel, FormControl } from '@mui/material';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useTranslation } from 'react-i18next';
 
 
@@ -34,15 +33,15 @@ function Colaboradores() {
 
 
   // Load employees from the 'users' collection
-  const fetchEmployees = async () => {
+  const fetchEmployees = React.useCallback(async () => {
     const querySnapshot = await getDocs(collection(db, 'users'));
     const allUsers = querySnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
     setRows(allUsers);
     setFilteredRows(allUsers);
-  };
+  }, []);
 
   // Check if the user is an admin
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = React.useCallback(async () => {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
@@ -58,7 +57,7 @@ function Colaboradores() {
       setError(t('accountNotRegisteredInDatabase'));
       navigate('/perfil');
     }
-  };
+  }, [navigate, t]);
 
   React.useEffect(() => {
     checkAdminAccess();
@@ -68,7 +67,7 @@ function Colaboradores() {
       setShowAdminSnackbar(true);
       localStorage.removeItem('adminJustLoggedIn');
     }
-  }, []);
+  }, [checkAdminAccess, fetchEmployees, navigate]);
 
   // Filter rows based on search term
   React.useEffect(() => {

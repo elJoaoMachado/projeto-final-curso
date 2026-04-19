@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Container, TextField, Button, Typography, Box, MenuItem, 
+  Container, Button, Typography, Box, MenuItem, 
   Dialog, DialogTitle, DialogContent, DialogActions, 
   FormControl, InputLabel, Select, Snackbar, Alert,
-  IconButton, Tooltip, Collapse, Card, CardContent
+  Collapse, Card, CardContent
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -16,7 +16,7 @@ import { db } from '../FirebaseConfig';
 import { collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { CalendarToday, Add } from '@mui/icons-material';
+import { Add } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import 'dayjs/locale/pt';
 import ptLocale from '@fullcalendar/core/locales/pt';
@@ -33,7 +33,6 @@ export default function PaginaAusencias() {
   const [ausencias, setAusencias] = useState([]);
   const [users, setUsers] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -48,7 +47,7 @@ export default function PaginaAusencias() {
   }, [i18n.language]);
 
   // Check admin role
-  const checkAdminRole = async (user) => {
+  const checkAdminRole = useCallback(async (user) => {
     try {
       const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', user.email)));
       if (!userDoc.empty) {
@@ -60,10 +59,10 @@ export default function PaginaAusencias() {
       console.error('Error checking admin role:', error);
       return false;
     }
-  };
+  }, []);
 
   // Load users for dropdown
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'users'));
       const usersData = querySnapshot.docs.map(doc => ({
@@ -74,7 +73,30 @@ export default function PaginaAusencias() {
     } catch (error) {
       console.error('Error loading users:', error);
     }
-  };
+  }, []);
+
+  const carregarAusencias = useCallback(async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const querySnapshot = await getDocs(collection(db, 'ausencias'));
+      const ausenciasFirestore = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          nome: data.nome,
+          razao: data.razao,
+          data: data.data,
+          userId: data.userId,
+        };
+      });
+      setAusencias(ausenciasFirestore);
+    } catch (error) {
+      console.error('Error loading absences:', error);
+      setError(t('errorLoadingAbsences'));
+    }
+  }, [auth, t]);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -92,7 +114,7 @@ export default function PaginaAusencias() {
 
     const unsubscribe = auth.onAuthStateChanged(initializeUser);
     return () => unsubscribe();
-  }, [auth, navigate]);
+  }, [auth, navigate, checkAdminRole, loadUsers, carregarAusencias]);
 
   const handleAdicionar = async () => {
     if (nome && data && razao) {
@@ -129,29 +151,6 @@ export default function PaginaAusencias() {
       }
     } else {
       setError(t('allFieldsMustBeFilled'));
-    }
-  };
-
-  const carregarAusencias = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const querySnapshot = await getDocs(collection(db, 'ausencias'));
-      const ausenciasFirestore = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          nome: data.nome,
-          razao: data.razao,
-          data: data.data,
-          userId: data.userId,
-        };
-      });
-      setAusencias(ausenciasFirestore);
-    } catch (error) {
-      console.error('Error loading absences:', error);
-      setError(t('errorLoadingAbsences'));
     }
   };
 

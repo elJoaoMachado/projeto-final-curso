@@ -26,9 +26,9 @@
     "framer-motion": "^12.16.0",
     "i18next": "^25.3.0",
     "pdfjs-dist": "^3.4.120",
-    "react": "^19.0.0",
+    "react": "^18.2.0",
     "react-calendar": "^5.1.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "^18.2.0",
     "react-i18next": "^15.5.3",
     "react-intersection-observer": "^9.16.0",
     "react-modal": "^3.16.3",
@@ -42,6 +42,14 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
+  },
+  "engines": {
+    "node": ">=18 <=20",
+    "npm": ">=9"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.15.0",
+    "typescript": "^4.9.5"
   },
   "eslintConfig": {
     "extends": [

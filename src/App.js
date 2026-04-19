@@ -22,7 +22,6 @@ const drawerWidth = 240;
 const collapsedWidth = 70;
 const classicFont = "'Poppins', sans-serif";
 const primaryColor = "#1a237e";
-const accentColor = "#ffd700";
 const lightBlue = "#4f8cff";
 
 const Sidebar = ({ open, toggleDrawer }) => {
@@ -345,6 +344,7 @@ const AppContent = () => {
               >
                 <Routes>
                   <Route path="/" element={<LoginPage />} />
+                  <Route path="/login" element={<LoginPage />} />
                   <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
                   <Route path="/ausencias" element={<PrivateRoute><Ausencias /></PrivateRoute>} />
                   <Route path="/relatorios" element={<PrivateRoute><Relatorios /></PrivateRoute>} />

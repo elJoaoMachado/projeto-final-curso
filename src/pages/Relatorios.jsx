@@ -3,8 +3,8 @@ import {
   Box, Grid, Typography, Button, Dialog,
   DialogActions, DialogContent, DialogContentText,
   DialogTitle, Card, CardContent, CardMedia, CardActions,
-  CircularProgress, Alert, Snackbar, TextField, FormControl,
-  InputLabel, Select, MenuItem, TablePagination, Chip
+  CircularProgress, Alert, Snackbar, FormControl,
+  InputLabel, Select, MenuItem, TablePagination
 } from "@mui/material";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -13,9 +13,9 @@ import { storage } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { collection, getDocs, query, where, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
-import { Search, FilterList, Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
+import { FilterList, Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 

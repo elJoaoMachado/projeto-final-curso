@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Grid, Typography, Button, Dialog, DialogActions, DialogContent,
-  DialogContentText, DialogTitle, Card, CardContent, CardMedia, CardActions,
+  DialogTitle, Card, CardContent, CardActions,
   TextField, MenuItem, CircularProgress, Alert, Snackbar, LinearProgress,
-  Paper, IconButton, Tooltip, FormControl, InputLabel, Select, TablePagination, Chip
+  Paper, IconButton, Tooltip, FormControl, InputLabel, Select, TablePagination
 } from "@mui/material";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from '../FirebaseConfig';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Add as AddIcon, Delete as DeleteIcon, AttachMoney as MoneyIcon, Description as DescriptionIcon, PictureAsPdf as PdfIcon, Search, FilterList } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon, PictureAsPdf as PdfIcon, FilterList } from '@mui/icons-material';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,6 @@ const Despesas = () => {
   const [filteredDespesas, setFilteredDespesas] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [newDespesa, setNewDespesa] = useState({ tipo: '', valor: '', data: '', arquivo: null });
-  const [deleteIndex, setDeleteIndex] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -65,7 +64,7 @@ const Despesas = () => {
     }
   }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'users'));
       const usersData = querySnapshot.docs.map(doc => ({
@@ -76,9 +75,9 @@ const Despesas = () => {
     } catch (error) {
       console.error('Error loading users:', error);
     }
-  };
+  }, []);
 
-  const carregarDespesas = async () => {
+  const carregarDespesas = useCallback(async () => {
     try {
       setLoading(true);
       const user = auth.currentUser;
@@ -131,7 +130,7 @@ const Despesas = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [auth, isAdmin, navigate]);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -149,7 +148,7 @@ const Despesas = () => {
 
     const unsubscribe = auth.onAuthStateChanged(initializeUser);
     return () => unsubscribe();
-  }, [auth, checkAdminRole, navigate]);
+  }, [auth, checkAdminRole, navigate, loadUsers, carregarDespesas]);
 
   // Check if the admin just logged in
   if (localStorage.getItem('adminJustLoggedIn') === 'true') {
