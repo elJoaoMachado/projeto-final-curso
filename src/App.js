@@ -1,28 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import {BrowserRouter as Router,Routes,Route,Navigate,useLocation,} from "react-router-dom";
-import {Drawer, List, ListItem, ListItemIcon, ListItemText,CssBaseline, Toolbar, AppBar, Typography, Box, Container,IconButton, Tooltip, useTheme, useMediaQuery, ThemeProvider, createTheme} from "@mui/material";
+import {Drawer, List, ListItem, ListItemIcon, ListItemText,CssBaseline, Toolbar, AppBar, Typography, Box, Container,IconButton, Tooltip, useTheme, useMediaQuery, ThemeProvider, createTheme, CircularProgress} from "@mui/material";
 import {Menu as MenuIcon, Person as PersonIcon, EventNote as EventNoteIcon,Assessment as AssessmentIcon, AttachMoney as AttachMoneyIcon, Brightness4, Brightness7} from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from 'react-i18next';
 
-import Perfil from "./pages/Perfil";
-import Ausencias from "./pages/Ausencias";
-import Relatorios from "./pages/Relatorios";
-import Colaboradores from "./pages/Colaboradores";
-import Despesas from "./pages/Despesas";
-import LoginPage from "./pages/Login";
 import PrivateRoute from "./PrivateRoute";
 import { AuthProvider } from "./AuthContext";
 import logo from "./pages/logoTechnoSoftware.png";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import FloatingLangButton from './FloatingLangButton';
 
+const Perfil = lazy(() => import("./pages/Perfil"));
+const Ausencias = lazy(() => import("./pages/Ausencias"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Colaboradores = lazy(() => import("./pages/Colaboradores"));
+const Despesas = lazy(() => import("./pages/Despesas"));
+const LoginPage = lazy(() => import("./pages/Login"));
+
 const drawerWidth = 240;
 const collapsedWidth = 70;
 const classicFont = "'Poppins', sans-serif";
 const primaryColor = "#1a237e";
 const lightBlue = "#4f8cff";
+
+const PageLoader = () => (
+  <Box sx={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <CircularProgress color="primary" />
+  </Box>
+);
 
 const Sidebar = ({ open, toggleDrawer }) => {
   const theme = useTheme();
@@ -64,7 +71,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
         </Toolbar>
         <List sx={{ px: 1.5 }}>
           {[
-            { text: t('profile'), icon: <PersonIcon />, path: "/perfil" },
+            { text: t('homePage'), icon: <PersonIcon />, path: "/perfil" },
             { text: t('employees'), icon: <PersonIcon />, path: "/colaboradores" },
             { text: t('absences'), icon: <EventNoteIcon />, path: "/ausencias" },
             { text: t('reports'), icon: <AssessmentIcon />, path: "/relatorios" },
@@ -228,6 +235,32 @@ const AppContent = () => {
           root: {
             fontSize: '0.8rem',
             padding: '6px 16px',
+            borderRadius: 10,
+            textTransform: 'none',
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            borderRadius: 14,
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            borderRadius: 14,
+            boxShadow: mode === 'light' ? '0 8px 26px rgba(17, 24, 39, 0.08)' : undefined,
+          },
+        },
+      },
+      MuiTableHead: {
+        styleOverrides: {
+          root: {
+            '& .MuiTableCell-root': {
+              fontWeight: 700,
+            },
           },
         },
       },
@@ -334,26 +367,28 @@ const AppContent = () => {
           }}
         >
           <Container maxWidth="lg">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Routes>
-                  <Route path="/" element={<LoginPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
-                  <Route path="/ausencias" element={<PrivateRoute><Ausencias /></PrivateRoute>} />
-                  <Route path="/relatorios" element={<PrivateRoute><Relatorios /></PrivateRoute>} />
-                  <Route path="/colaboradores" element={<PrivateRoute><Colaboradores /></PrivateRoute>} />
-                  <Route path="/despesas" element={<PrivateRoute><Despesas /></PrivateRoute>} />
-                  <Route path="*" element={<Navigate to="/perfil" />} />
-                </Routes>
-              </motion.div>
-            </AnimatePresence>
+            <Suspense fallback={<PageLoader />}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Routes>
+                    <Route path="/" element={<LoginPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
+                    <Route path="/ausencias" element={<PrivateRoute><Ausencias /></PrivateRoute>} />
+                    <Route path="/relatorios" element={<PrivateRoute><Relatorios /></PrivateRoute>} />
+                    <Route path="/colaboradores" element={<PrivateRoute><Colaboradores /></PrivateRoute>} />
+                    <Route path="/despesas" element={<PrivateRoute><Despesas /></PrivateRoute>} />
+                    <Route path="*" element={<Navigate to="/perfil" />} />
+                  </Routes>
+                </motion.div>
+              </AnimatePresence>
+            </Suspense>
           </Container>
         </Box>
       </Box>

@@ -3,7 +3,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, IconButton, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, Button, Switch, FormControlLabel, Snackbar, Alert,
-  TablePagination, Box, Typography, Chip
+  TablePagination, Box, Typography, Chip, Skeleton, TableSortLabel
 } from '@mui/material';
 import { Edit, Delete, Search } from '@mui/icons-material';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
@@ -26,6 +26,9 @@ function Colaboradores() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [sortBy, setSortBy] = React.useState('name');
+  const [sortDirection, setSortDirection] = React.useState('asc');
   const navigate = useNavigate();
   const departamentos = ['HR', 'Finance', 'Technology'];
   const [showAdminSnackbar, setShowAdminSnackbar] = React.useState(false);
@@ -34,10 +37,15 @@ function Colaboradores() {
 
   // Load employees from the 'users' collection
   const fetchEmployees = React.useCallback(async () => {
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    const allUsers = querySnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-    setRows(allUsers);
-    setFilteredRows(allUsers);
+    setIsLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const allUsers = querySnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+      setRows(allUsers);
+      setFilteredRows(allUsers);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   // Check if the user is an admin
@@ -74,7 +82,8 @@ function Colaboradores() {
     const filtered = rows.filter(row =>
       row.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       row.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.Department?.toLowerCase().includes(searchTerm.toLowerCase())
+      row.Department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.otherInfo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredRows(filtered);
     setPage(0);
@@ -165,6 +174,29 @@ function Colaboradores() {
     setError('');
   };
 
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setSortBy(field);
+    setSortDirection('asc');
+  };
+
+  const sortedRows = React.useMemo(() => {
+    const cloned = [...filteredRows];
+    const direction = sortDirection === 'asc' ? 1 : -1;
+
+    return cloned.sort((a, b) => {
+      const valA = (a[sortBy] || '').toString().toLowerCase();
+      const valB = (b[sortBy] || '').toString().toLowerCase();
+      if (valA < valB) return -1 * direction;
+      if (valA > valB) return 1 * direction;
+      return 0;
+    });
+  }, [filteredRows, sortBy, sortDirection]);
+
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
@@ -174,7 +206,7 @@ function Colaboradores() {
         {isAdmin && (
           <Button 
             variant="contained" 
-            onClick={() => setNewEmployee({ name: '', email: '', date: '', Department: '', contractType: '', password: '' })}
+            onClick={() => setNewEmployee({ name: '', email: '', date: '', Department: '', contractType: '', password: '', otherInfo: '' })}
             sx={{ fontWeight: 'bold', fontFamily: 'Poppins, sans-serif' }}
           >
             {t('addEmployee')}
@@ -245,6 +277,15 @@ function Colaboradores() {
               value={newEmployee.password || ''} 
               onChange={(e) => handleNewEmployeeChange('password', e.target.value)} 
             />
+            <TextField 
+              label={t('other')} 
+              fullWidth 
+              margin="dense" 
+              multiline
+              minRows={2}
+              value={newEmployee.otherInfo || ''} 
+              onChange={(e) => handleNewEmployeeChange('otherInfo', e.target.value)} 
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setNewEmployee(null)}>{t('cancel')}</Button>
@@ -254,19 +295,41 @@ function Colaboradores() {
       )}
 
       <TableContainer component={Paper} sx={{ mt: 2 }}>
+        {isLoading && <Skeleton variant="rounded" height={220} sx={{ m: 2 }} />}
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>{t('name')}</TableCell>
-              <TableCell>{t('email')}</TableCell>
-              <TableCell>{t('admissionDate')}</TableCell>
-              <TableCell>{t('department')}</TableCell>
+              <TableCell>
+                <TableSortLabel active={sortBy === 'name'} direction={sortBy === 'name' ? sortDirection : 'asc'} onClick={() => handleSort('name')}>
+                  {t('name')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel active={sortBy === 'email'} direction={sortBy === 'email' ? sortDirection : 'asc'} onClick={() => handleSort('email')}>
+                  {t('email')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel active={sortBy === 'date'} direction={sortBy === 'date' ? sortDirection : 'asc'} onClick={() => handleSort('date')}>
+                  {t('admissionDate')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel active={sortBy === 'Department'} direction={sortBy === 'Department' ? sortDirection : 'asc'} onClick={() => handleSort('Department')}>
+                  {t('department')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel active={sortBy === 'otherInfo'} direction={sortBy === 'otherInfo' ? sortDirection : 'asc'} onClick={() => handleSort('otherInfo')}>
+                  {t('other')}
+                </TableSortLabel>
+              </TableCell>
               <TableCell>{t('admin')}</TableCell>
               {isAdmin && <TableCell align="right">{t('actions')}</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRows
+            {sortedRows
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((row) => (
                 <TableRow key={row.docId}>
@@ -280,6 +343,7 @@ function Colaboradores() {
                       color={row.Department ? "primary" : "default"}
                     />
                   </TableCell>
+                  <TableCell>{row.otherInfo || '-'}</TableCell>
                   <TableCell>
                     {isAdmin ? (
                       <FormControlLabel
@@ -320,7 +384,7 @@ function Colaboradores() {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={filteredRows.length}
+          count={sortedRows.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
@@ -381,6 +445,15 @@ function Colaboradores() {
                 ))}
               </Select>
             </FormControl>
+            <TextField 
+              label={t('other')} 
+              fullWidth 
+              margin="dense" 
+              multiline
+              minRows={2}
+              value={selectedEmployee.otherInfo || ''} 
+              onChange={(e) => handleEditChange('otherInfo', e.target.value)} 
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setSelectedEmployee(null)}>{t('cancel')}</Button>

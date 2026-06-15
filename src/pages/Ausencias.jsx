@@ -3,7 +3,7 @@ import {
   Container, Button, Typography, Box, MenuItem, 
   Dialog, DialogTitle, DialogContent, DialogActions, 
   FormControl, InputLabel, Select, Snackbar, Alert,
-  Collapse, Card, CardContent
+  Collapse, Card, CardContent, Skeleton
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -39,6 +39,7 @@ export default function PaginaAusencias() {
   const auth = getAuth();
   const [showForm, setShowForm] = useState(false);
   const [absenceToDelete, setAbsenceToDelete] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { t, i18n } = useTranslation();
 
   // Update dayjs locale according to the language
@@ -100,6 +101,7 @@ export default function PaginaAusencias() {
 
   useEffect(() => {
     const initializeUser = async () => {
+      setIsLoading(true);
       const user = auth.currentUser;
       if (!user) {
         navigate('/login');
@@ -110,6 +112,7 @@ export default function PaginaAusencias() {
       setIsAdmin(adminStatus);
       await loadUsers();
       await carregarAusencias();
+      setIsLoading(false);
     };
 
     const unsubscribe = auth.onAuthStateChanged(initializeUser);
@@ -161,6 +164,10 @@ export default function PaginaAusencias() {
 
   const handleEventClick = (clickInfo) => {
     const user = auth.currentUser;
+    if (!user) {
+      setError(t('loginRequired'));
+      return;
+    }
     const eventUserId = clickInfo.event.extendedProps.userId;
 
     // Allow admin or the user themselves to delete the absence
@@ -260,13 +267,20 @@ export default function PaginaAusencias() {
           </Card>
         </Collapse>
         <Box mb={2}>
+          {isLoading ? (
+            <Skeleton variant="rounded" height={500} />
+          ) : (
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
             events={ausencias.map(a => ({
+              id: a.id,
               title: a.nome + (a.razao ? ` (${a.razao})` : ''),
               start: a.data,
-              allDay: true
+              allDay: true,
+              userId: a.userId,
+              nome: a.nome,
+              razao: a.razao
             }))}
             locale={i18n.language === 'pt' ? ptLocale : undefined}
             eventClick={handleEventClick}
@@ -288,6 +302,7 @@ export default function PaginaAusencias() {
               right: 'dayGridMonth,dayGridWeek'
             }}
           />
+          )}
         </Box>
 
         {/* Delete Confirmation Dialog */}

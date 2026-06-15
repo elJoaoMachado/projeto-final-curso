@@ -3,7 +3,7 @@ import {
   Box, Grid, Typography, Button, Dialog, DialogActions, DialogContent,
   DialogTitle, Card, CardContent, CardActions,
   TextField, MenuItem, CircularProgress, Alert, Snackbar, LinearProgress,
-  Paper, IconButton, Tooltip, FormControl, InputLabel, Select, TablePagination
+  Paper, IconButton, Tooltip, FormControl, InputLabel, Select, TablePagination, Skeleton
 } from "@mui/material";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from '../FirebaseConfig';
@@ -125,12 +125,12 @@ const Despesas = () => {
         setFilteredDespesas(userDespesas);
       }
     } catch (error) {
-      setError('Error loading expenses');
+      setError(t('errorLoadingExpenses'));
       console.error("Error loading expenses:", error);
     } finally {
       setLoading(false);
     }
-  }, [auth, isAdmin, navigate]);
+  }, [auth, isAdmin, navigate, t]);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -150,11 +150,12 @@ const Despesas = () => {
     return () => unsubscribe();
   }, [auth, checkAdminRole, navigate, loadUsers, carregarDespesas]);
 
-  // Check if the admin just logged in
-  if (localStorage.getItem('adminJustLoggedIn') === 'true') {
-    setShowAdminSnackbar(true);
-    localStorage.removeItem('adminJustLoggedIn');
-  }
+  useEffect(() => {
+    if (localStorage.getItem('adminJustLoggedIn') === 'true') {
+      setShowAdminSnackbar(true);
+      localStorage.removeItem('adminJustLoggedIn');
+    }
+  }, []);
 
   // Filter expenses based on search criteria
   useEffect(() => {
@@ -192,7 +193,7 @@ const Despesas = () => {
     const file = event.target.files[0];
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
-        setError('File is too large. Maximum size allowed: 10MB');
+        setError(t('fileTooLargeMaxSize', { size: 10 }));
         return;
       }
       setNewDespesa(prev => ({ ...prev, arquivo: file }));
@@ -202,22 +203,22 @@ const Despesas = () => {
   const handleSubmit = async () => {
     const user = auth.currentUser;
     if (!user) {
-      setError('You need to be logged in to add an expense');
+      setError(t('mustBeLoggedInAddExpense'));
       navigate('/login');
       return;
     }
 
     // Field validation
     if (!newDespesa.tipo) {
-      setError('Please select the expense type');
+      setError(t('pleaseSelectExpenseType'));
       return;
     }
     if (!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) {
-      setError('Please enter a valid value greater than zero');
+      setError(t('pleaseEnterValidValue'));
       return;
     }
     if (!newDespesa.data) {
-      setError('Please select the expense date');
+      setError(t('pleaseSelectExpenseDate'));
       return;
     }
 
@@ -242,7 +243,7 @@ const Despesas = () => {
             },
             (error) => {
               console.error("Error uploading file:", error);
-              reject(new Error('Error uploading file. Please try again.'));
+              reject(new Error(t('errorUploadingFileTryAgain')));
             },
             async () => {
               try {
@@ -250,7 +251,7 @@ const Despesas = () => {
                 resolve();
               } catch (error) {
                 console.error("Error getting file URL:", error);
-                reject(new Error('Error processing file. Please try again.'));
+                reject(new Error(t('errorProcessingFileTryAgain')));
               }
             }
           );
@@ -269,13 +270,13 @@ const Despesas = () => {
 
       await addDoc(collection(db, 'despesas'), despesaData);
 
-      setSuccess('Expense added successfully!');
+      setSuccess(t('expenseAddedSuccessfully'));
       setOpenForm(false);
       setNewDespesa({ tipo: '', valor: '', data: '', arquivo: null });
       await carregarDespesas();
     } catch (error) {
       console.error("Error adding expense:", error);
-      setError(error.message || 'Error adding expense. Please try again.');
+      setError(error.message || t('errorAddingExpenseTryAgain'));
     } finally {
       setLoading(false);
       setUploadProgress(0);
@@ -290,10 +291,10 @@ const Despesas = () => {
         await deleteObject(arquivoRef);
       }
       await deleteDoc(doc(db, 'despesas', id));
-      setSuccess('Expense deleted successfully!');
+      setSuccess(t('expenseDeletedSuccessfully'));
       await carregarDespesas();
     } catch (error) {
-      setError('Error deleting expense');
+      setError(t('errorDeletingExpense'));
       console.error("Error deleting expense:", error);
     } finally {
       setLoading(false);
@@ -441,7 +442,15 @@ const Despesas = () => {
 
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 
-        {filteredDespesas.length > 0 ? (
+        {loading && filteredDespesas.length === 0 ? (
+          <Grid container spacing={3}>
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <Grid item xs={12} sm={6} md={4} key={idx}>
+                <Skeleton variant="rounded" height={260} />
+              </Grid>
+            ))}
+          </Grid>
+        ) : filteredDespesas.length > 0 ? (
           <>
             <Grid container spacing={3}>
               <AnimatePresence>

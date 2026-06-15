@@ -32,7 +32,7 @@ export default function LoginPage() {
       if (querySnapshot.empty) {
         // If user doesn't exist in database, logout and show error
         await signOut(auth);
-        setError("User not found. Please try again.");
+        setError(t('userNotFoundTryAgain'));
         navigate("/");
         return;
       }
@@ -47,7 +47,7 @@ export default function LoginPage() {
       navigate("/perfil");
     } catch (err) {
       console.error("Login error:", err);
-      setError("Login failed. Please check your credentials.");
+      setError(t('loginFailedCheckCredentials'));
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +75,7 @@ export default function LoginPage() {
       if (querySnapshot.empty) {
         // If user doesn't exist in database, logout and show error
         await signOut(auth);
-        setError("User not found. Please try again.");
+        setError(t('userNotFoundTryAgain'));
         navigate("/");
         return;
       }
@@ -91,13 +91,13 @@ export default function LoginPage() {
     } catch (err) {
       console.error("Google login error:", err);
       if (err.code === 'auth/popup-closed-by-user') {
-        setError("Login cancelled. Please try again.");
+        setError(t('loginCancelledTryAgain'));
       } else if (err.code === 'auth/popup-blocked') {
-        setError("Popup was blocked. Please allow popups for this site.");
+        setError(t('popupBlockedAllow'));
       } else if (err.code === 'auth/cancelled-popup-request') {
-        setError("Login cancelled. Please try again.");
+        setError(t('loginCancelledTryAgain'));
       } else {
-        setError("Google login failed. Please try again.");
+        setError(t('googleLoginFailedTryAgain'));
       }
     } finally {
       setIsLoading(false);

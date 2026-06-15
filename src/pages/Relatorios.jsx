@@ -4,7 +4,7 @@ import {
   DialogActions, DialogContent, DialogContentText,
   DialogTitle, Card, CardContent, CardMedia, CardActions,
   CircularProgress, Alert, Snackbar, FormControl,
-  InputLabel, Select, MenuItem, TablePagination
+  InputLabel, Select, MenuItem, TablePagination, Skeleton
 } from "@mui/material";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -88,7 +88,7 @@ const Relatorios = () => {
     try {
       const user = auth.currentUser;
       if (!user) {
-        throw new Error('You must be logged in to view files');
+        throw new Error(t('mustBeLoggedInViewFiles'));
       }
 
       console.log('Current user:', user.uid);
@@ -102,11 +102,11 @@ const Relatorios = () => {
         try {
           const url = await getDownloadURL(itemRef);
           const metadata = await getMetadata(itemRef);
-          const uploadedByUid = metadata.customMetadata?.uploadedBy || 'Unknown';
+          const uploadedByUid = metadata.customMetadata?.uploadedBy || t('unknown');
           let uploadedByName = uploadedByUid;
 
           // Get user name from Firestore
-          if (uploadedByUid !== 'Unknown') {
+          if (uploadedByUid !== t('unknown')) {
             try {
               const userDoc = await getDoc(doc(firestore, 'users', uploadedByUid));
               if (userDoc.exists()) {
@@ -124,7 +124,7 @@ const Relatorios = () => {
             url: url,
             uploadedBy: uploadedByName,
             uploadedByUid: uploadedByUid,
-            uploadedAt: metadata.customMetadata?.uploadedAt || 'Unknown date',
+            uploadedAt: metadata.customMetadata?.uploadedAt || t('unknownDate'),
             uploadDate: uploadDate,
             year: uploadDate.getFullYear(),
             month: uploadDate.getMonth()
@@ -150,11 +150,11 @@ const Relatorios = () => {
       }
     } catch (error) {
       console.error('Error fetching files:', error);
-      setError(error.message || 'Error loading PDF files');
+      setError(error.message || t('errorLoadingPdfFiles'));
     } finally {
       setLoading(false);
     }
-  }, [auth, isAdmin, firestore]);
+  }, [auth, isAdmin, firestore, t]);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -175,11 +175,12 @@ const Relatorios = () => {
     return () => unsubscribe();
   }, [auth, checkAdminRole, fetchPdfFiles, navigate]);
 
-  // Check if the admin just logged in
-  if (localStorage.getItem('adminJustLoggedIn') === 'true') {
-    setShowAdminSnackbar(true);
-    localStorage.removeItem('adminJustLoggedIn');
-  }
+  useEffect(() => {
+    if (localStorage.getItem('adminJustLoggedIn') === 'true') {
+      setShowAdminSnackbar(true);
+      localStorage.removeItem('adminJustLoggedIn');
+    }
+  }, []);
 
   // Filter files based on search criteria
   useEffect(() => {
@@ -216,13 +217,13 @@ const Relatorios = () => {
       // Check authentication
       const user = auth.currentUser;
       if (!user) {
-        throw new Error('You must be logged in to upload files');
+        throw new Error(t('mustBeLoggedInUploadFiles'));
       }
 
       // Validate file sizes
       const invalidFiles = files.filter(file => file.size > MAX_FILE_SIZE);
       if (invalidFiles.length > 0) {
-        throw new Error(`Some files exceed the maximum size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+        throw new Error(t('filesExceedMaxSize', { size: MAX_FILE_SIZE / (1024 * 1024) }));
       }
 
       const uploadPromises = files.map(async (file) => {
@@ -240,11 +241,11 @@ const Relatorios = () => {
           const url = await getDownloadURL(snapshot.ref);
           
           // Get user name from Firestore
-          let userName = 'Desconhecido';
+          let userName = t('unknown');
           try {
             const userDoc = await getDoc(doc(firestore, 'users', user.uid));
             if (userDoc.exists()) {
-              userName = userDoc.data().name || user.displayName || 'Desconhecido';
+              userName = userDoc.data().name || user.displayName || t('unknown');
             }
           } catch (e) {
             console.error('Error getting user name:', e);
@@ -278,10 +279,10 @@ const Relatorios = () => {
       const uploadedFiles = await Promise.all(uploadPromises);
       console.log(uploadedFiles);
       setPdfFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
-      setSuccess('Files uploaded successfully!');
+      setSuccess(t('filesUploadedSuccessfully'));
     } catch (error) {
       console.error('Upload error:', error);
-      setError(error.message || 'Error uploading files');
+      setError(error.message || t('errorUploadingFiles'));
     } finally {
       setLoading(false);
     }
@@ -296,14 +297,14 @@ const Relatorios = () => {
     try {
       const user = auth.currentUser;
       if (!isAdmin && fileToDelete.uploadedBy !== user.uid) {
-        throw new Error('You can only delete your own files');
+        throw new Error(t('onlyDeleteOwnFiles'));
       }
 
       await deleteObject(fileRef);
       setPdfFiles((prevFiles) => prevFiles.filter((_, i) => i !== deleteIndex));
-      setSuccess('File deleted successfully!');
+      setSuccess(t('fileDeletedSuccessfully'));
     } catch (error) {
-      setError(error.message || 'Error deleting file');
+      setError(error.message || t('errorDeletingFile'));
       console.error("Error deleting from Firebase:", error);
     } finally {
       setLoading(false);
@@ -415,7 +416,15 @@ const Relatorios = () => {
         </Grid>
       </Box>
       
-      {filteredFiles.length > 0 ? (
+      {loading && filteredFiles.length === 0 ? (
+        <Grid container spacing={2}>
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <Grid item xs={12} sm={6} md={4} key={idx}>
+              <Skeleton variant="rounded" height={300} />
+            </Grid>
+          ))}
+        </Grid>
+      ) : filteredFiles.length > 0 ? (
         <>
           <Grid container spacing={2}>
             {filteredFiles
@@ -425,7 +434,7 @@ const Relatorios = () => {
                   <Card sx={{ maxWidth: 345, borderRadius: 2, boxShadow: 2 }}>
                     <CardContent>
                       <Typography variant="body2" color="text.secondary" noWrap>
-                        {fileObj.name || `Document ${index + 1}`}
+                        {fileObj.name || t('documentN', { index: index + 1 })}
                       </Typography>
                       {isAdmin && (
                         <>
@@ -444,7 +453,7 @@ const Relatorios = () => {
                           fileUrl={fileObj.url}
                           onError={(error) => {
                             console.error('PDF Viewer Error:', error);
-                            setError('Error loading PDF preview');
+                            setError(t('errorLoadingPdfPreview'));
                           }}
                         />
                       </Worker>
@@ -457,7 +466,7 @@ const Relatorios = () => {
                         sx={{ marginLeft: 'auto' }}
                         disabled={loading}
                       >
-                        Delete
+                        {t('delete')}
                       </Button>
                     </CardActions>
                   </Card>
@@ -496,10 +505,10 @@ const Relatorios = () => {
         open={deleteIndex !== null} 
         onClose={() => setDeleteIndex(null)}
       >
-        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogTitle>{t('confirmDeletion')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete this file? This action cannot be undone.
+            {t('confirmDeleteFileText')}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -508,14 +517,14 @@ const Relatorios = () => {
             color="primary" 
             disabled={loading}
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button 
             onClick={handleDeleteFile} 
             color="error" 
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : 'Delete'}
+            {loading ? <CircularProgress size={24} /> : t('delete')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -545,13 +554,13 @@ const Relatorios = () => {
 
       <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert onClose={() => setShowAdminSnackbar(false)} severity="info" sx={{ width: '100%' }}>
-          You are logged in as admin.
+          {t('youAreLoggedInAsAdmin')}
         </Alert>
       </Snackbar>
 
       {/* Dialog para upload de PDF */}
       <Dialog open={openUploadDialog} onClose={handleCloseUploadDialog} maxWidth="xs" fullWidth>
-        <DialogTitle>Upload PDF</DialogTitle>
+        <DialogTitle>{t('uploadPdf')}</DialogTitle>
         <DialogContent>
           <Button
             variant="outlined"
@@ -581,7 +590,7 @@ const Relatorios = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseUploadDialog}>Cancel</Button>
+          <Button onClick={handleCloseUploadDialog}>{t('cancel')}</Button>
           <Button onClick={handleUploadSelectedFiles} variant="contained" disabled={selectedFiles.length === 0 || loading}>
             {loading ? <CircularProgress size={20} /> : t('upload')}
           </Button>
