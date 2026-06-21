@@ -12,19 +12,20 @@ import { ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata } 
 import { storage } from '../FirebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { FilterList, Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const CARD_WIDTH = 360;
+const CARD_HEIGHT = 360;
 
 const Relatorios = () => {
   const [pdfFiles, setPdfFiles] = useState([]);
   const [filteredFiles, setFilteredFiles] = useState([]);
-  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [fileToDelete, setFileToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -39,7 +40,6 @@ const Relatorios = () => {
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const navigate = useNavigate();
   const auth = getAuth();
-  const firestore = getFirestore();
   const [showAdminSnackbar, setShowAdminSnackbar] = useState(false);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -54,20 +54,17 @@ const Relatorios = () => {
 
   const checkAdminRole = useCallback(async (user) => {
     try {
-      console.log('Checking admin role for user:', user.uid);
-      const userDoc = await getDoc(doc(firestore, 'users', user.uid));
-      if (!userDoc.exists()) {
-        console.log('User document does not exist');
+      const userQuery = await getDocs(query(collection(db, 'users'), where('email', '==', user.email)));
+      if (userQuery.empty) {
         return false;
       }
-
-      const userData = userDoc.data();
+      const userData = userQuery.docs[0].data();
       return userData.isAdmin === true;
     } catch (error) {
       console.error('Error checking admin role:', error);
       return false;
     }
-  }, [firestore]);
+  }, []);
 
   const loadUsers = async () => {
     try {
@@ -91,12 +88,8 @@ const Relatorios = () => {
         throw new Error(t('mustBeLoggedInViewFiles'));
       }
 
-      console.log('Current user:', user.uid);
-      console.log('Is admin:', isAdmin);
-
       const storageRef = ref(storage, 'pdfs');
       const result = await listAll(storageRef);
-      console.log('Found files:', result.items.length);
       
       const filePromises = result.items.map(async (itemRef) => {
         try {
@@ -108,9 +101,9 @@ const Relatorios = () => {
           // Get user name from Firestore
           if (uploadedByUid !== t('unknown')) {
             try {
-              const userDoc = await getDoc(doc(firestore, 'users', uploadedByUid));
-              if (userDoc.exists()) {
-                uploadedByName = userDoc.data().name || uploadedByUid;
+              const userQuery = await getDocs(query(collection(db, 'users'), where('uid', '==', uploadedByUid)));
+              if (!userQuery.empty) {
+                uploadedByName = userQuery.docs[0].data().name || uploadedByUid;
               }
             } catch (e) {
               // If error, keep UID
@@ -136,14 +129,11 @@ const Relatorios = () => {
       });
 
       const files = (await Promise.all(filePromises)).filter(file => file !== null);
-      console.log('Processed files:', files.length);
       
       if (isAdmin) {
-        console.log('Setting all files for admin');
         setPdfFiles(files);
         setFilteredFiles(files);
       } else {
-        console.log('Filtering files for normal user');
         const userFiles = files.filter(file => file.uploadedByUid === user.uid);
         setPdfFiles(userFiles);
         setFilteredFiles(userFiles);
@@ -154,7 +144,7 @@ const Relatorios = () => {
     } finally {
       setLoading(false);
     }
-  }, [auth, isAdmin, firestore, t]);
+  }, [auth, isAdmin, t]);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -165,7 +155,6 @@ const Relatorios = () => {
       }
 
       const adminStatus = await checkAdminRole(user);
-      console.log('Setting admin status:', adminStatus);
       setIsAdmin(adminStatus);
       await loadUsers();
       await fetchPdfFiles();
@@ -227,7 +216,8 @@ const Relatorios = () => {
       }
 
       const uploadPromises = files.map(async (file) => {
-        const storageRef = ref(storage, `pdfs/${file.name}`);
+        const uniqueName = `${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, `pdfs/${user.uid}/${uniqueName}`);
         const metadata = {
           contentType: 'application/pdf',
           customMetadata: {
@@ -243,9 +233,9 @@ const Relatorios = () => {
           // Get user name from Firestore
           let userName = t('unknown');
           try {
-            const userDoc = await getDoc(doc(firestore, 'users', user.uid));
-            if (userDoc.exists()) {
-              userName = userDoc.data().name || user.displayName || t('unknown');
+            const userQuery = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+            if (!userQuery.empty) {
+              userName = userQuery.docs[0].data().name || user.displayName || t('unknown');
             }
           } catch (e) {
             console.error('Error getting user name:', e);
@@ -261,7 +251,8 @@ const Relatorios = () => {
           });
           
           return { 
-            name: file.name, 
+            name: uniqueName,
+            originalName: file.name,
             url: url,
             uploadedBy: user.uid,
             uploadedByUid: user.uid,
@@ -277,7 +268,6 @@ const Relatorios = () => {
       });
       
       const uploadedFiles = await Promise.all(uploadPromises);
-      console.log(uploadedFiles);
       setPdfFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
       setSuccess(t('filesUploadedSuccessfully'));
     } catch (error) {
@@ -289,26 +279,26 @@ const Relatorios = () => {
   };
 
   const handleDeleteFile = async () => {
-    const fileToDelete = pdfFiles[deleteIndex];
-    const fileRef = ref(storage, `pdfs/${fileToDelete.name}`);
+    if (!fileToDelete) return;
+    const fileRef = ref(storage, `pdfs/${fileToDelete.uploadedByUid}/${fileToDelete.name}`);
     setLoading(true);
     setError(null);
 
     try {
       const user = auth.currentUser;
-      if (!isAdmin && fileToDelete.uploadedBy !== user.uid) {
+      if (!isAdmin && fileToDelete.uploadedByUid !== user.uid) {
         throw new Error(t('onlyDeleteOwnFiles'));
       }
 
       await deleteObject(fileRef);
-      setPdfFiles((prevFiles) => prevFiles.filter((_, i) => i !== deleteIndex));
+      setPdfFiles((prevFiles) => prevFiles.filter((file) => !(file.name === fileToDelete.name && file.uploadedByUid === fileToDelete.uploadedByUid)));
       setSuccess(t('fileDeletedSuccessfully'));
     } catch (error) {
       setError(error.message || t('errorDeletingFile'));
       console.error("Error deleting from Firebase:", error);
     } finally {
       setLoading(false);
-      setDeleteIndex(null);
+      setFileToDelete(null);
     }
   };
 
@@ -354,19 +344,18 @@ const Relatorios = () => {
         </motion.div>
       </Box>
       {/* Search Filters */}
-      <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ mb: 3, p: 3, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
+        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, textAlign: 'center' }}>
           <FilterList /> {t('searchFilters')}
         </Typography>
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+        <Grid container spacing={2} justifyContent="center" alignItems="center">
+          <Grid item xs={12} sm={6} md={4}>
+            <FormControl fullWidth size="medium" sx={{ minWidth: 260 }}>
               <InputLabel>{t('person')}</InputLabel>
               <Select
                 value={searchFilters.person}
                 label={t('person')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, person: e.target.value }))}
-                MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
               >
                 <MenuItem value="">{t('all')}</MenuItem>
                 {users.map((user) => (
@@ -377,14 +366,13 @@ const Relatorios = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <FormControl fullWidth size="medium" sx={{ minWidth: 260 }}>
               <InputLabel>{t('year')}</InputLabel>
               <Select
                 value={searchFilters.year}
                 label={t('year')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, year: e.target.value }))}
-                MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
               >
                 <MenuItem value="">{t('all')}</MenuItem>
                 {years.map((year) => (
@@ -395,14 +383,13 @@ const Relatorios = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <FormControl fullWidth size="medium" sx={{ minWidth: 260 }}>
               <InputLabel>{t('month')}</InputLabel>
               <Select
                 value={searchFilters.month}
                 label={t('month')}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, month: e.target.value }))}
-                MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
               >
                 <MenuItem value="">{t('all')}</MenuItem>
                 {months.map((month, index) => (
@@ -426,15 +413,15 @@ const Relatorios = () => {
         </Grid>
       ) : filteredFiles.length > 0 ? (
         <>
-          <Grid container spacing={2}>
+          <Grid container spacing={2} justifyContent="center">
             {filteredFiles
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((fileObj, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Card sx={{ maxWidth: 345, borderRadius: 2, boxShadow: 2 }}>
-                    <CardContent>
+                <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Card sx={{ width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`, maxWidth: `${CARD_WIDTH}px`, borderRadius: 2, boxShadow: 2, height: `${CARD_HEIGHT}px`, minHeight: `${CARD_HEIGHT}px`, maxHeight: `${CARD_HEIGHT}px`, display: 'flex', flexDirection: 'column' }}>
+                    <CardContent sx={{ flexGrow: 1 }}>
                       <Typography variant="body2" color="text.secondary" noWrap>
-                        {fileObj.name || t('documentN', { index: index + 1 })}
+                        {fileObj.originalName || fileObj.name || t('documentN', { index: index + 1 })}
                       </Typography>
                       {isAdmin && (
                         <>
@@ -447,7 +434,7 @@ const Relatorios = () => {
                         </>
                       )}
                     </CardContent>
-                    <CardMedia sx={{ height: 200, overflow: 'hidden' }}>
+                    <CardMedia sx={{ height: 150, overflow: 'hidden' }}>
                       <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                         <Viewer
                           fileUrl={fileObj.url}
@@ -462,7 +449,7 @@ const Relatorios = () => {
                       <Button
                         variant="outlined"
                         color="error"
-                        onClick={() => setDeleteIndex(index)}
+                        onClick={() => setFileToDelete(fileObj)}
                         sx={{ marginLeft: 'auto' }}
                         disabled={loading}
                       >
@@ -483,15 +470,16 @@ const Relatorios = () => {
             rowsPerPageOptions={[6, 12, 24]}
             labelRowsPerPage={t('rowsPerPage')}
             sx={{
-              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                lineHeight: '32px',
-                verticalAlign: 'middle',
+              '& .MuiTablePagination-toolbar': {
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'nowrap',
+                gap: 1,
               },
-              '& .MuiInputBase-root': {
-                verticalAlign: 'middle',
-                marginTop: '-6px',
-                transform: 'translateY(-2px)',
-              }
+              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                whiteSpace: 'nowrap',
+                margin: 0,
+              },
             }}
           />
         </>
@@ -502,8 +490,8 @@ const Relatorios = () => {
       )}
 
       <Dialog 
-        open={deleteIndex !== null} 
-        onClose={() => setDeleteIndex(null)}
+        open={Boolean(fileToDelete)} 
+        onClose={() => setFileToDelete(null)}
       >
         <DialogTitle>{t('confirmDeletion')}</DialogTitle>
         <DialogContent>
@@ -513,7 +501,7 @@ const Relatorios = () => {
         </DialogContent>
         <DialogActions>
           <Button 
-            onClick={() => setDeleteIndex(null)} 
+            onClick={() => setFileToDelete(null)} 
             color="primary" 
             disabled={loading}
           >
@@ -534,7 +522,7 @@ const Relatorios = () => {
         open={!!success} 
         autoHideDuration={4000} 
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert onClose={handleCloseSnackbar} severity="success">
           {success}
@@ -545,14 +533,14 @@ const Relatorios = () => {
         open={!!error} 
         autoHideDuration={4000} 
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert onClose={handleCloseSnackbar} severity="error">
           {error}
         </Alert>
       </Snackbar>
 
-      <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert onClose={() => setShowAdminSnackbar(false)} severity="info" sx={{ width: '100%' }}>
           {t('youAreLoggedInAsAdmin')}
         </Alert>
@@ -582,7 +570,7 @@ const Relatorios = () => {
             <Box sx={{ mt: 1 }}>
               {selectedFiles.map((file, idx) => (
                 <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <PictureAsPdf sx={{ color: '#d32f2f' }} />
+                  <PictureAsPdf color="primary" />
                   <Typography variant="body2">{file.name}</Typography>
                 </Box>
               ))}

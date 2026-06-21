@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Container, Button, Typography, Box, MenuItem, 
+  Button, Typography, Box, MenuItem, 
   Dialog, DialogTitle, DialogContent, DialogActions, 
   FormControl, InputLabel, Select, Snackbar, Alert,
-  Collapse, Card, CardContent, Skeleton
+  Skeleton
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -148,12 +148,15 @@ export default function PaginaAusencias() {
         setNome('');
         setData(null);
         setRazao('');
+        return true;
       } catch (error) {
         console.error('Error adding absence:', error);
         setError(t('errorRegisteringAbsence'));
+        return false;
       }
     } else {
       setError(t('allFieldsMustBeFilled'));
+      return false;
     }
   };
 
@@ -195,80 +198,23 @@ export default function PaginaAusencias() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={i18n.language === 'pt' ? 'pt' : 'en'}>
-      <Container maxWidth="md" sx={{ mt: 2, py: 0, px: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
+      <Box sx={{ mt: 1, py: 0, px: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 1, mb: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
             {t('absences')}
           </Typography>
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setShowForm((prev) => !prev)}
+            onClick={() => setShowForm(true)}
             sx={{ fontWeight: 'bold' }}
           >
             {t('registerAbsence')}
           </Button>
         </Box>
-        <Collapse in={showForm}>
-          <Card elevation={4} sx={{ mb: 3 }}>
-            <CardContent>
-              <Box display="flex" flexDirection="column" gap={1.5}>
-                <FormControl fullWidth>
-                  <InputLabel>{t('employee')}</InputLabel>
-                  <Select
-                    value={nome}
-                    label={t('employee')}
-                    onChange={(e) => setNome(e.target.value)}
-                  >
-                    {users
-                      .filter(user => user.email === auth.currentUser.email)
-                      .map(user => (
-                        <MenuItem key={user.id} value={user.name}>
-                          {user.name}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                </FormControl>
-                <DatePicker
-                  label={t('absenceDate')}
-                  value={data}
-                  onChange={(newValue) => setData(newValue)}
-                  format="DD/MM/YYYY"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: "small"
-                    }
-                  }}
-                />
-                <FormControl fullWidth>
-                  <InputLabel>{t('reason')}</InputLabel>
-                  <Select
-                    value={razao}
-                    label={t('reason')}
-                    onChange={(e) => setRazao(e.target.value)}
-                  >
-                    <MenuItem value="Sick">{t('sick')}</MenuItem>
-                    <MenuItem value="Vacation">{t('vacation')}</MenuItem>
-                    <MenuItem value="Family">{t('family')}</MenuItem>
-                    <MenuItem value="Other">{t('other')}</MenuItem>
-                  </Select>
-                </FormControl>
-                <Button
-                  variant="contained"
-                  onClick={handleAdicionar}
-                  startIcon={<Add />}
-                  sx={{ mt: 1 }}
-                >
-                  {t('register')}
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Collapse>
         <Box mb={2}>
           {isLoading ? (
-            <Skeleton variant="rounded" height={500} />
+            <Skeleton variant="rounded" height={650} />
           ) : (
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
@@ -284,7 +230,7 @@ export default function PaginaAusencias() {
             }))}
             locale={i18n.language === 'pt' ? ptLocale : undefined}
             eventClick={handleEventClick}
-            height="500px"
+            height="680px"
             titleFormat={{
               year: 'numeric',
               month: 'long',
@@ -304,6 +250,70 @@ export default function PaginaAusencias() {
           />
           )}
         </Box>
+
+        <Dialog open={showForm} onClose={() => setShowForm(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('registerAbsence')}</DialogTitle>
+          <DialogContent>
+            <Box display="flex" flexDirection="column" gap={1.5} sx={{ mt: 1 }}>
+              <FormControl fullWidth>
+                <InputLabel>{t('employee')}</InputLabel>
+                <Select
+                  value={nome}
+                  label={t('employee')}
+                  onChange={(e) => setNome(e.target.value)}
+                >
+                  {users
+                    .filter(user => user.email === auth.currentUser.email)
+                    .map(user => (
+                      <MenuItem key={user.id} value={user.name}>
+                        {user.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+              <DatePicker
+                label={t('absenceDate')}
+                value={data}
+                onChange={(newValue) => setData(newValue)}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: "small"
+                  }
+                }}
+              />
+              <FormControl fullWidth>
+                <InputLabel>{t('reason')}</InputLabel>
+                <Select
+                  value={razao}
+                  label={t('reason')}
+                  onChange={(e) => setRazao(e.target.value)}
+                >
+                  <MenuItem value="Sick">{t('sick')}</MenuItem>
+                  <MenuItem value="Vacation">{t('vacation')}</MenuItem>
+                  <MenuItem value="Family">{t('family')}</MenuItem>
+                  <MenuItem value="Other">{t('other')}</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowForm(false)}>{t('cancel')}</Button>
+            <Button
+              variant="contained"
+              onClick={async () => {
+                const saved = await handleAdicionar();
+                if (saved) {
+                  setShowForm(false);
+                }
+              }}
+              startIcon={<Add />}
+            >
+              {t('register')}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         {absenceToDelete && (
@@ -328,7 +338,7 @@ export default function PaginaAusencias() {
           open={!!success} 
           autoHideDuration={4000} 
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert onClose={handleCloseSnackbar} severity="success">
             {success}
@@ -338,13 +348,13 @@ export default function PaginaAusencias() {
           open={!!error} 
           autoHideDuration={4000} 
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert onClose={handleCloseSnackbar} severity="error">
             {error}
           </Alert>
         </Snackbar>
-      </Container>
+      </Box>
     </LocalizationProvider>
   );
 }

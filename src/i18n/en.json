@@ -123,6 +123,7 @@
   "scales": "Shifts",
   "studies": "Studies",
   "trainings": "Trainings",
+  "photoUrl": "Photo URL",
   "loginRequired": "You need to sign in.",
   "userNotFoundTryAgain": "User not found. Please try again.",
   "loginFailedCheckCredentials": "Login failed. Please check your credentials.",
@@ -160,4 +161,6 @@
   "weeklyTotalAbsences": "Weekly total: {{count}}",
   "weeklyPeakDay": "Peak day: {{day}} ({{count}})",
   "exportWeekCsv": "Export week CSV"
+  ,"passwordResetConfigError": "Unable to send password setup email. Please verify authorized domains in Firebase.",
+  "passwordResetUnexpectedError": "Unable to send the email right now. Please try again later."
 } 

@@ -122,6 +122,7 @@
   "scales": "Escalas",
   "studies": "Estudos",
   "trainings": "Formações",
+  "photoUrl": "URL da Foto",
   "loginRequired": "Precisa de iniciar sessão.",
   "userNotFoundTryAgain": "Utilizador não encontrado. Tente novamente.",
   "loginFailedCheckCredentials": "Falha no login. Verifique as suas credenciais.",
@@ -159,4 +160,6 @@
   "weeklyTotalAbsences": "Total semanal: {{count}}",
   "weeklyPeakDay": "Dia de pico: {{day}} ({{count}})",
   "exportWeekCsv": "Exportar semana CSV"
+  ,"passwordResetConfigError": "Não foi possível enviar o email de definição de senha. Verifique a configuração de domínios autorizados no Firebase.",
+  "passwordResetUnexpectedError": "Não foi possível enviar o email neste momento. Tente novamente mais tarde."
 } 

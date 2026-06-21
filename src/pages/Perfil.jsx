@@ -1,18 +1,21 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Typography, Avatar, Paper, Grid, Card, CardContent,
-  useTheme, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Skeleton
+  useTheme, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Skeleton,
+  FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 import { getAuth } from 'firebase/auth';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
-import { motion } from 'framer-motion';
 import { Work as WorkIcon, Business as BusinessIcon, CalendarToday as CalendarIcon, Edit as EditIcon, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt';
 import 'dayjs/locale/en';
+
+const HOME_CARD_WIDTH = 520;
+const HOME_CARD_HEIGHT = 640;
 
 const Perfil = () => {
   const [userData, setUserData] = useState(null);
@@ -24,6 +27,7 @@ const Perfil = () => {
   const user = auth.currentUser;
   const theme = useTheme();
   const { t, i18n } = useTranslation();
+  const departamentos = ['HR', 'Finance', 'Technology'];
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -111,23 +115,6 @@ const Perfil = () => {
     );
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.5 }
-    }
-  };
-
   return (
     <Box sx={{ py: 2, px: 2, minHeight: '100vh', height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 1 }}>
@@ -136,32 +123,30 @@ const Perfil = () => {
         </Typography>
       </Box>
 
-      <motion.div variants={containerVariants} initial="hidden" animate="visible">
+      <Box>
         <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ minHeight: '60vh', height: '100%' }}>
           <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <motion.div variants={itemVariants} style={{ height: '100%' }}>
+            <Box sx={{ height: '100%' }}>
               <Paper
                 elevation={8}
                 sx={{
-                  p: 6,
+                  p: { xs: 3, md: 5 },
                   borderRadius: 4,
                   background: theme.palette.background.paper,
-                  minHeight: { xs: 400, md: 620 },
+                  minHeight: { xs: 520, md: `${HOME_CARD_HEIGHT}px` },
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
                   boxShadow: theme.shadows[4],
-                  height: '100%',
-                  width: '100%',
+                  height: { xs: 'auto', md: `${HOME_CARD_HEIGHT}px` },
+                  width: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
+                  maxWidth: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
+                  mx: 'auto',
                   flex: 1,
                 }}
               >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
+                <Box>
                   <Box sx={{ position: 'relative', width: 120, height: 120, mb: 2 }}>
                     <Avatar
                       src={userData.photoURL || ''}
@@ -190,31 +175,31 @@ const Perfil = () => {
                       <EditIcon />
                     </IconButton>
                   </Box>
-                </motion.div>
+                </Box>
                 <Typography variant="subtitle1" sx={{ color: theme.palette.text.secondary, mb: 2, fontFamily: "'Poppins', sans-serif", textAlign: 'center' }}>
                   {userData.email}
                 </Typography>
                 <Card sx={{ background: theme.palette.action.hover, width: '100%', mb: 2 }}>
-                  <CardContent sx={{ textAlign: 'center' }}>
+                  <CardContent sx={{ textAlign: 'left' }}>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif", textAlign: 'center' }}>
                       {t('professionalData')}
                     </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.2, alignItems: 'flex-start' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 1.2 }}>
                         <WorkIcon sx={{ color: theme.palette.primary.main }} />
                         <Box sx={{ textAlign: 'left' }}>
                           <Typography variant="body2" color="text.secondary">{t('position')}</Typography>
                           <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>{userData.role || t('notDefined')}</Typography>
                         </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 1.2 }}>
                         <BusinessIcon sx={{ color: theme.palette.primary.main }} />
                         <Box sx={{ textAlign: 'left' }}>
                           <Typography variant="body2" color="text.secondary">{t('department')}</Typography>
-                          <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>{userData.department || t('notDefined')}</Typography>
+                          <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>{userData.department || userData.Department || t('notDefined')}</Typography>
                         </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 1.2 }}>
                         <CalendarIcon sx={{ color: theme.palette.primary.main }} />
                         <Box sx={{ textAlign: 'left' }}>
                           <Typography variant="body2" color="text.secondary">{t('admissionDate')}</Typography>
@@ -228,98 +213,102 @@ const Perfil = () => {
                   <DefinirSenhaButton email={userData.email} />
                 </Box>
               </Paper>
-            </motion.div>
+            </Box>
           </Grid>
 
           <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <motion.div variants={itemVariants} style={{ height: '100%' }}>
+            <Box sx={{ height: '100%' }}>
               <Paper
                 elevation={8}
                 sx={{
-                  p: 6,
+                  p: { xs: 3, md: 5 },
                   borderRadius: 4,
                   background: theme.palette.background.paper,
-                  minHeight: { xs: 400, md: 620 },
+                  minHeight: { xs: 520, md: `${HOME_CARD_HEIGHT}px` },
                   display: 'flex',
                   flexDirection: 'column',
                   boxShadow: theme.shadows[4],
                   flex: 1,
-                  height: '100%',
-                  width: '100%',
+                  height: { xs: 'auto', md: `${HOME_CARD_HEIGHT}px` },
+                  width: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
+                  maxWidth: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
+                  mx: 'auto',
                 }}
               >
-                <Grid container spacing={2} alignItems="stretch" sx={{ flex: 1, height: '100%' }}>
-                  <Grid item xs={12} sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Card sx={{ background: theme.palette.action.hover, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <CardContent sx={{ flexGrow: 1 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif" }}>
-                          {t('weeklyAbsenceCalendar')}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                          <IconButton onClick={handlePrevWeek} size="small">
-                            <ChevronLeft />
-                          </IconButton>
-                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                            {t('weekRange', {
-                              start: currentWeek.startOf('week').format('DD/MM'),
-                              end: currentWeek.endOf('week').format('DD/MM')
-                            })}
+                <Grid container spacing={0} alignItems="center" justifyContent="center" sx={{ flex: 1, height: '100%' }}>
+                  <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Card sx={{ background: theme.palette.action.hover, width: '100%', maxWidth: 430, minHeight: { xs: 420, md: 500 }, display: 'flex', flexDirection: 'column' }}>
+                      <CardContent sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Box sx={{ width: '100%', maxWidth: 360, mx: 'auto' }}>
+                          <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif", textAlign: 'center' }}>
+                            {t('weeklyAbsenceCalendar')}
                           </Typography>
-                          <IconButton onClick={handleNextWeek} size="small">
-                            <ChevronRight />
-                          </IconButton>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
-                          {Array.from({ length: 7 }, (_, i) => {
-                            const day = currentWeek.startOf('week').add(i, 'day');
-                            const dayKey = day.format('YYYY-MM-DD');
-                            const absences = (weeklyAbsences[dayKey] || []);
-                            const dayLabel = day.locale(i18n.language === 'pt' ? 'pt' : 'en').format('ddd DD/MM');
-                            const hasManyAbsences = absences.length >= 3;
-                            
-                            return (
-                              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, borderBottom: '1px solid', borderColor: theme.palette.divider }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.primary.main, minWidth: 80 }}>
-                                  {dayLabel}
-                                </Typography>
-                                {hasManyAbsences ? (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    {absences.slice(0, 4).map((absence, idx) => (
-                                      <Avatar
-                                        key={idx}
-                                        src={absence.photoURL || ''}
-                                        alt={absence.nome}
-                                        sx={{ width: 28, height: 28, fontSize: '0.75rem', border: `2px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[1] }}
-                                      >
-                                        {absence.nome?.charAt(0) || '?'}
-                                      </Avatar>
-                                    ))}
-                                    {absences.length > 4 && (
-                                      <Avatar
-                                        sx={{ width: 28, height: 28, fontSize: '0.7rem', background: theme.palette.primary.main, border: `2px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[1] }}
-                                      >
-                                        +{absences.length - 4}
-                                      </Avatar>
-                                    )}
-                                  </Box>
-                                ) : (
-                                  <Typography variant="body2" sx={{ color: absences.length > 0 ? theme.palette.text.primary : theme.palette.text.secondary }}>
-                                    {absences.length > 0 ? absences.map(a => a.nome).join(', ') : t('noOne')}
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                            <IconButton onClick={handlePrevWeek} size="small">
+                              <ChevronLeft />
+                            </IconButton>
+                            <Typography variant="body1" sx={{ fontWeight: 600, textAlign: 'center' }}>
+                              {t('weekRange', {
+                                start: currentWeek.startOf('week').format('DD/MM'),
+                                end: currentWeek.endOf('week').format('DD/MM')
+                              })}
+                            </Typography>
+                            <IconButton onClick={handleNextWeek} size="small">
+                              <ChevronRight />
+                            </IconButton>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+                            {Array.from({ length: 7 }, (_, i) => {
+                              const day = currentWeek.startOf('week').add(i, 'day');
+                              const dayKey = day.format('YYYY-MM-DD');
+                              const absences = (weeklyAbsences[dayKey] || []);
+                              const dayLabel = day.locale(i18n.language === 'pt' ? 'pt' : 'en').format('ddd DD/MM');
+                              const hasManyAbsences = absences.length >= 3;
+
+                              return (
+                                <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, borderBottom: '1px solid', borderColor: theme.palette.divider }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.primary.main, minWidth: 80 }}>
+                                    {dayLabel}
                                   </Typography>
-                                )}
-                              </Box>
-                            );
-                          })}
+                                  {hasManyAbsences ? (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      {absences.slice(0, 4).map((absence, idx) => (
+                                        <Avatar
+                                          key={idx}
+                                          src={absence.photoURL || ''}
+                                          alt={absence.nome}
+                                          sx={{ width: 28, height: 28, fontSize: '0.75rem', border: `2px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[1] }}
+                                        >
+                                          {absence.nome?.charAt(0) || '?'}
+                                        </Avatar>
+                                      ))}
+                                      {absences.length > 4 && (
+                                        <Avatar
+                                          sx={{ width: 28, height: 28, fontSize: '0.7rem', background: theme.palette.primary.main, border: `2px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[1] }}
+                                        >
+                                          +{absences.length - 4}
+                                        </Avatar>
+                                      )}
+                                    </Box>
+                                  ) : (
+                                    <Typography variant="body2" sx={{ color: absences.length > 0 ? theme.palette.text.primary : theme.palette.text.secondary }}>
+                                      {absences.length > 0 ? absences.map(a => a.nome).join(', ') : t('noOne')}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                          </Box>
                         </Box>
                       </CardContent>
                     </Card>
                   </Grid>
                 </Grid>
               </Paper>
-            </motion.div>
+            </Box>
           </Grid>
         </Grid>
-      </motion.div>
+      </Box>
 
       <Dialog open={editing} onClose={handleCancelEdit} maxWidth="sm" fullWidth>
         <DialogTitle>{t('editProfile')}</DialogTitle>
@@ -337,9 +326,62 @@ const Perfil = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                label={t('email')}
+                value={editData.email || ''}
+                margin="normal"
+                disabled
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={t('admissionDate')}
+                value={editData.date || ''}
+                onChange={(e) => setEditData({ ...editData, date: e.target.value })}
+                margin="normal"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={t('position')}
+                value={editData.role || ''}
+                onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel id="profile-department-label">{t('department')}</InputLabel>
+                <Select
+                  labelId="profile-department-label"
+                  label={t('department')}
+                  value={editData.department || editData.Department || ''}
+                  onChange={(e) => setEditData({ ...editData, department: e.target.value, Department: e.target.value })}
+                >
+                  {departamentos.map((dep) => (
+                    <MenuItem key={dep} value={dep}>{dep}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
                 label={t('profileNumber')}
                 value={editData.profileNumber || ''}
                 onChange={(e) => setEditData({ ...editData, profileNumber: e.target.value })}
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label={t('photoUrl')}
+                value={editData.photoURL || ''}
+                onChange={(e) => setEditData({ ...editData, photoURL: e.target.value })}
                 margin="normal"
               />
             </Grid>
@@ -365,6 +407,15 @@ const Perfil = () => {
             onChange={(e) => setEditData({ ...editData, trainings: e.target.value })}
             margin="normal"
           />
+          <TextField
+            fullWidth
+            label={t('other')}
+            value={editData.otherInfo || ''}
+            onChange={(e) => setEditData({ ...editData, otherInfo: e.target.value })}
+            margin="normal"
+            multiline
+            minRows={2}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelEdit}>{t('cancel')}</Button>
@@ -387,7 +438,11 @@ function DefinirSenhaButton({ email }) {
       await sendPasswordResetEmail(auth, email);
       setEnviado(true);
     } catch (e) {
-      setErro(e.message);
+      if (e.code === 'auth/invalid-continue-uri' || e.code === 'auth/unauthorized-continue-uri') {
+        setErro(t('passwordResetConfigError'));
+      } else {
+        setErro(t('passwordResetUnexpectedError'));
+      }
     }
   };
 

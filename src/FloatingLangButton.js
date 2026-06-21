@@ -1,14 +1,28 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Fab } from '@mui/material';
+import { Fab, Button } from '@mui/material';
 
-const FloatingLangButton = () => {
+const FloatingLangButton = ({ inHeader = false }) => {
   const { i18n } = useTranslation();
   const isPT = i18n.language === 'pt';
 
   const toggleLang = () => {
     i18n.changeLanguage(isPT ? 'en' : 'pt');
   };
+
+  if (inHeader) {
+    return (
+      <Button
+        onClick={toggleLang}
+        variant="outlined"
+        color="primary"
+        size="small"
+        sx={{ fontWeight: 700, minWidth: 56 }}
+      >
+        {isPT ? 'EN' : 'PT'}
+      </Button>
+    );
+  }
 
   return (
     <Fab

@@ -9,13 +9,15 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebas
 import { storage } from '../FirebaseConfig';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon, PictureAsPdf as PdfIcon, FilterList } from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon, FilterList } from '@mui/icons-material';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const CARD_WIDTH = 340;
+const CARD_HEIGHT = 340;
 
 const Despesas = () => {
   const [despesas, setDespesas] = useState([]);
@@ -39,6 +41,7 @@ const Despesas = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const [showAdminSnackbar, setShowAdminSnackbar] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const { t } = useTranslation();
 
   const months = [
@@ -95,7 +98,7 @@ const Despesas = () => {
       // Get user names for all expenses
       const despesasComNomes = await Promise.all(despesasData.map(async (despesa) => {
         if (despesa.userId) {
-          const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', despesa.userName)));
+          const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', despesa.userId)));
           if (!userDoc.empty) {
             const userData = userDoc.docs[0].data();
             return {
@@ -315,27 +318,6 @@ const Despesas = () => {
     setError('');
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5
-      }
-    }
-  };
-
   return (
     <Box sx={{ py: 2, px: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
@@ -347,32 +329,30 @@ const Despesas = () => {
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
-            onClick={() => setOpenForm(true)}
+            onClick={() => {
+              setSubmitAttempted(false);
+              setOpenForm(true);
+            }}
             sx={{ fontWeight: 'bold' }}
           >
             {t('newExpense')}
           </Button>
         </motion.div>
       </Box>
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <Box>
         {/* Search Filters */}
-        <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ mb: 3, p: 3, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, textAlign: 'center' }}>
             <FilterList /> {t('searchFilters')}
           </Typography>
-          <Grid container spacing={2} justifyContent="center">
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+          <Grid container spacing={2} justifyContent="center" alignItems="center">
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 240 }}>
                 <InputLabel>{t('person')}</InputLabel>
                 <Select
                   value={searchFilters.person}
                   label={t('person')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, person: e.target.value }))}
-                  MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
                 >
                   <MenuItem value="">{t('all')}</MenuItem>
                   {users.map((user) => (
@@ -383,14 +363,13 @@ const Despesas = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 240 }}>
                 <InputLabel>{t('year')}</InputLabel>
                 <Select
                   value={searchFilters.year}
                   label={t('year')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, year: e.target.value }))}
-                  MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
                 >
                   <MenuItem value="">{t('all')}</MenuItem>
                   {years.map((year) => (
@@ -401,14 +380,13 @@ const Despesas = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 240 }}>
                 <InputLabel>{t('month')}</InputLabel>
                 <Select
                   value={searchFilters.month}
                   label={t('month')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, month: e.target.value }))}
-                  MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
                 >
                   <MenuItem value="">{t('all')}</MenuItem>
                   {months.map((month, index) => (
@@ -419,14 +397,13 @@ const Despesas = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl fullWidth size="small" sx={{ minWidth: 250 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 240 }}>
                 <InputLabel>{t('type')}</InputLabel>
                 <Select
                   value={searchFilters.type}
                   label={t('type')}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value }))}
-                  MenuProps={{ PaperProps: { sx: { minWidth: 250 } } }}
                 >
                   <MenuItem value="">{t('all')}</MenuItem>
                   {expenseTypes.map((type) => (
@@ -452,19 +429,12 @@ const Despesas = () => {
           </Grid>
         ) : filteredDespesas.length > 0 ? (
           <>
-            <Grid container spacing={3}>
-              <AnimatePresence>
+            <Grid container spacing={3} justifyContent="center">
                 {filteredDespesas
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((despesa, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={despesa.id}>
-                      <motion.div
-                        variants={itemVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                      >
+                  .map((despesa) => (
+                    <Grid item xs={12} sm={6} md={4} key={despesa.id} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                         <Paper
                           elevation={8}
                           sx={{
@@ -472,10 +442,16 @@ const Despesas = () => {
                             overflow: 'hidden',
                             background: 'linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%)',
                             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                            width: `${CARD_WIDTH}px`,
+                            minWidth: `${CARD_WIDTH}px`,
+                            maxWidth: `${CARD_WIDTH}px`,
+                            height: `${CARD_HEIGHT}px`,
+                            minHeight: `${CARD_HEIGHT}px`,
+                            maxHeight: `${CARD_HEIGHT}px`,
                           }}
                         >
-                          <Card>
-                            <CardContent sx={{ pb: 1 }}>
+                          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <CardContent sx={{ pb: 1, flexGrow: 1 }}>
                               <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
                                 {t('expenseType_' + (['Food','Transport','Accommodation','Other'].includes(despesa.tipo) ? despesa.tipo.toLowerCase() : 'other'))}
                               </Typography>
@@ -486,13 +462,12 @@ const Despesas = () => {
                                 <strong>{t('date')}:</strong> {new Date(despesa.data).toLocaleDateString()}
                               </Typography>
                               {isAdmin && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                <Typography variant="body1" sx={{ mb: 1 }}>
                                   <strong>{t('registeredBy')}:</strong> {despesa.userName}
                                 </Typography>
                               )}
                               {despesa.arquivoURL && (
-                                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <PdfIcon sx={{ color: '#d32f2f' }} />
+                                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
                                   <Button
                                     variant="text"
                                     color="primary"
@@ -528,10 +503,9 @@ const Despesas = () => {
                             </CardActions>
                           </Card>
                         </Paper>
-                      </motion.div>
+                      </Box>
                     </Grid>
                   ))}
-              </AnimatePresence>
             </Grid>
             <TablePagination
               component="div"
@@ -543,15 +517,16 @@ const Despesas = () => {
               rowsPerPageOptions={[6, 12, 24]}
               labelRowsPerPage={t('rowsPerPage')}
               sx={{
-                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                  lineHeight: '32px',
-                  verticalAlign: 'middle',
+                '& .MuiTablePagination-toolbar': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'nowrap',
+                  gap: 1,
                 },
-                '& .MuiInputBase-root': {
-                  verticalAlign: 'middle',
-                  marginTop: '-6px',
-                  transform: 'translateY(-2px)',
-                }
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                  whiteSpace: 'nowrap',
+                  margin: 0,
+                },
               }}
             />
           </>
@@ -563,7 +538,12 @@ const Despesas = () => {
 
         <Dialog
           open={openForm}
-          onClose={() => !loading && setOpenForm(false)}
+          onClose={() => {
+            if (!loading) {
+              setOpenForm(false);
+              setSubmitAttempted(false);
+            }
+          }}
           maxWidth="sm"
           fullWidth
           PaperProps={{
@@ -585,8 +565,8 @@ const Despesas = () => {
                 select
                 fullWidth
                 required
-                error={!newDespesa.tipo && openForm}
-                helperText={!newDespesa.tipo && openForm ? t('typeRequired') : ""}
+                error={!newDespesa.tipo && submitAttempted}
+                helperText={!newDespesa.tipo && submitAttempted ? t('typeRequired') : ""}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -608,8 +588,8 @@ const Despesas = () => {
                 onChange={(e) => setNewDespesa(prev => ({ ...prev, valor: e.target.value }))}
                 fullWidth
                 required
-                error={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && openForm}
-                helperText={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && openForm ? t('valueRequired') : ""}
+                error={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && submitAttempted}
+                helperText={(!newDespesa.valor || parseFloat(newDespesa.valor) <= 0) && submitAttempted ? t('valueRequired') : ""}
                 inputProps={{ min: "0", step: "0.01" }}
                 InputProps={{
                   endAdornment: <Typography>€</Typography>,
@@ -630,8 +610,8 @@ const Despesas = () => {
                 onChange={(e) => setNewDespesa(prev => ({ ...prev, data: e.target.value }))}
                 fullWidth
                 required
-                error={!newDespesa.data && openForm}
-                helperText={!newDespesa.data && openForm ? t('dateRequired') : ""}
+                error={!newDespesa.data && submitAttempted}
+                helperText={!newDespesa.data && submitAttempted ? t('dateRequired') : ""}
                 InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -677,7 +657,10 @@ const Despesas = () => {
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button
-              onClick={() => setOpenForm(false)}
+              onClick={() => {
+                setOpenForm(false);
+                setSubmitAttempted(false);
+              }}
               disabled={loading}
               sx={{
                 color: '#666',
@@ -689,7 +672,10 @@ const Despesas = () => {
               {t('cancel')}
             </Button>
             <Button
-              onClick={handleSubmit}
+              onClick={() => {
+                setSubmitAttempted(true);
+                handleSubmit();
+              }}
               variant="contained"
               disabled={loading}
               sx={{
@@ -711,7 +697,7 @@ const Despesas = () => {
           open={!!success} 
           autoHideDuration={4000} 
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert onClose={handleCloseSnackbar} severity="success">
             {success}
@@ -722,19 +708,19 @@ const Despesas = () => {
           open={!!error} 
           autoHideDuration={4000} 
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert onClose={handleCloseSnackbar} severity="error">
             {error}
           </Alert>
         </Snackbar>
 
-        <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
           <Alert onClose={() => setShowAdminSnackbar(false)} severity="info" sx={{ width: '100%' }}>
             {t('adminLoggedIn')}
           </Alert>
         </Snackbar>
-      </motion.div>
+      </Box>
     </Box>
   );
 };

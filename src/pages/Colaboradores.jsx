@@ -5,7 +5,7 @@ import {
   DialogActions, Button, Switch, FormControlLabel, Snackbar, Alert,
   TablePagination, Box, Typography, Chip, Skeleton, TableSortLabel
 } from '@mui/material';
-import { Edit, Delete, Search } from '@mui/icons-material';
+import { Edit, Delete, Search, Add } from '@mui/icons-material';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { useNavigate } from 'react-router-dom';
@@ -82,6 +82,7 @@ function Colaboradores() {
     const filtered = rows.filter(row =>
       row.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       row.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       row.Department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       row.otherInfo?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -206,7 +207,8 @@ function Colaboradores() {
         {isAdmin && (
           <Button 
             variant="contained" 
-            onClick={() => setNewEmployee({ name: '', email: '', date: '', Department: '', contractType: '', password: '', otherInfo: '' })}
+            startIcon={<Add />}
+            onClick={() => setNewEmployee({ name: '', email: '', date: '', department: '', Department: '', role: '', profileNumber: '', scales: '', studies: '', trainings: '', password: '', otherInfo: '', photoURL: '' })}
             sx={{ fontWeight: 'bold', fontFamily: 'Poppins, sans-serif' }}
           >
             {t('addEmployee')}
@@ -231,7 +233,7 @@ function Colaboradores() {
 
       {newEmployee && (
         <Dialog open onClose={() => setNewEmployee(null)} maxWidth="sm" fullWidth>
-          <DialogTitle>{t('newEmployee')}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('newEmployee')}</DialogTitle>
           <DialogContent>
             <TextField 
               label={t('name')} 
@@ -260,15 +262,60 @@ function Colaboradores() {
               <InputLabel id="departamento-label">{t('department')}</InputLabel>
               <Select 
                 labelId="departamento-label" 
-                value={newEmployee.Department} 
+                value={newEmployee.department || newEmployee.Department || ''} 
                 label={t('department')} 
-                onChange={(e) => handleNewEmployeeChange('Department', e.target.value)}
+                onChange={(e) => {
+                  handleNewEmployeeChange('department', e.target.value);
+                  handleNewEmployeeChange('Department', e.target.value);
+                }}
               >
                 {departamentos.map((dep) => (
                   <MenuItem key={dep} value={dep}>{dep}</MenuItem>
                 ))}
               </Select>
             </FormControl>
+            <TextField 
+              label={t('position')} 
+              fullWidth 
+              margin="dense" 
+              value={newEmployee.role || ''} 
+              onChange={(e) => handleNewEmployeeChange('role', e.target.value)} 
+            />
+            <TextField 
+              label={t('profileNumber')} 
+              fullWidth 
+              margin="dense" 
+              value={newEmployee.profileNumber || ''} 
+              onChange={(e) => handleNewEmployeeChange('profileNumber', e.target.value)} 
+            />
+            <TextField 
+              label={t('scales')} 
+              fullWidth 
+              margin="dense" 
+              value={newEmployee.scales || ''} 
+              onChange={(e) => handleNewEmployeeChange('scales', e.target.value)} 
+            />
+            <TextField 
+              label={t('studies')} 
+              fullWidth 
+              margin="dense" 
+              value={newEmployee.studies || ''} 
+              onChange={(e) => handleNewEmployeeChange('studies', e.target.value)} 
+            />
+            <TextField 
+              label={t('trainings')} 
+              fullWidth 
+              margin="dense" 
+              value={newEmployee.trainings || ''} 
+              onChange={(e) => handleNewEmployeeChange('trainings', e.target.value)} 
+            />
+            <TextField 
+              label={t('photoUrl')} 
+              fullWidth 
+              margin="dense" 
+              value={newEmployee.photoURL || ''} 
+              onChange={(e) => handleNewEmployeeChange('photoURL', e.target.value)} 
+            />
             <TextField 
               label={t('password')} 
               fullWidth 
@@ -338,9 +385,9 @@ function Colaboradores() {
                   <TableCell>{row.date}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={row.Department || t('notAssigned')} 
+                      label={row.department || row.Department || t('notAssigned')} 
                       size="small" 
-                      color={row.Department ? "primary" : "default"}
+                      color={row.department || row.Department ? "primary" : "default"}
                     />
                   </TableCell>
                   <TableCell>{row.otherInfo || '-'}</TableCell>
@@ -391,15 +438,16 @@ function Colaboradores() {
           onRowsPerPageChange={handleChangeRowsPerPage}
           labelRowsPerPage={t('rowsPerPage')}
           sx={{
-            '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-              lineHeight: '32px',
-              verticalAlign: 'middle',
+            '& .MuiTablePagination-toolbar': {
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'nowrap',
+              gap: 1,
             },
-            '& .MuiInputBase-root': {
-              verticalAlign: 'middle',
-              marginTop: '-6px',
-              transform: 'translateY(-2px)',
-            }
+            '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+              whiteSpace: 'nowrap',
+              margin: 0,
+            },
           }}
         />
       </TableContainer>
@@ -407,7 +455,7 @@ function Colaboradores() {
       {/* Edit Dialog */}
       {selectedEmployee && (
         <Dialog open onClose={() => setSelectedEmployee(null)} maxWidth="sm" fullWidth>
-          <DialogTitle>{t('editEmployee')}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('editEmployee')}</DialogTitle>
           <DialogContent>
             <TextField 
               label={t('name')} 
@@ -436,15 +484,60 @@ function Colaboradores() {
               <InputLabel id="edit-departamento-label">{t('department')}</InputLabel>
               <Select 
                 labelId="edit-departamento-label" 
-                value={selectedEmployee.Department} 
+                value={selectedEmployee.department || selectedEmployee.Department || ''} 
                 label={t('department')} 
-                onChange={(e) => handleEditChange('Department', e.target.value)}
+                onChange={(e) => {
+                  handleEditChange('department', e.target.value);
+                  handleEditChange('Department', e.target.value);
+                }}
               >
                 {departamentos.map((dep) => (
                   <MenuItem key={dep} value={dep}>{dep}</MenuItem>
                 ))}
               </Select>
             </FormControl>
+            <TextField 
+              label={t('position')} 
+              fullWidth 
+              margin="dense" 
+              value={selectedEmployee.role || ''} 
+              onChange={(e) => handleEditChange('role', e.target.value)} 
+            />
+            <TextField 
+              label={t('profileNumber')} 
+              fullWidth 
+              margin="dense" 
+              value={selectedEmployee.profileNumber || ''} 
+              onChange={(e) => handleEditChange('profileNumber', e.target.value)} 
+            />
+            <TextField 
+              label={t('scales')} 
+              fullWidth 
+              margin="dense" 
+              value={selectedEmployee.scales || ''} 
+              onChange={(e) => handleEditChange('scales', e.target.value)} 
+            />
+            <TextField 
+              label={t('studies')} 
+              fullWidth 
+              margin="dense" 
+              value={selectedEmployee.studies || ''} 
+              onChange={(e) => handleEditChange('studies', e.target.value)} 
+            />
+            <TextField 
+              label={t('trainings')} 
+              fullWidth 
+              margin="dense" 
+              value={selectedEmployee.trainings || ''} 
+              onChange={(e) => handleEditChange('trainings', e.target.value)} 
+            />
+            <TextField 
+              label={t('photoUrl')} 
+              fullWidth 
+              margin="dense" 
+              value={selectedEmployee.photoURL || ''} 
+              onChange={(e) => handleEditChange('photoURL', e.target.value)} 
+            />
             <TextField 
               label={t('other')} 
               fullWidth 
@@ -465,13 +558,13 @@ function Colaboradores() {
       {/* Delete Confirmation Dialog */}
       {employeeToDelete && (
         <Dialog open onClose={() => setEmployeeToDelete(null)}>
-          <DialogTitle>{t('deleteEmployee')}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800 }}>{t('deleteEmployee')}</DialogTitle>
           <DialogContent>
             {t('areYouSureYouWantToDeleteThisEmployee')}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setEmployeeToDelete(null)}>{t('cancel')}</Button>
-            <Button onClick={handleDelete} color="error">{t('yesDelete')}</Button>
+            <Button onClick={() => setEmployeeToDelete(null)} sx={{ fontWeight: 700 }}>{t('cancel')}</Button>
+            <Button onClick={handleDelete} color="error" sx={{ fontWeight: 700 }}>{t('yesDelete')}</Button>
           </DialogActions>
         </Dialog>
       )}
@@ -481,7 +574,7 @@ function Colaboradores() {
         open={!!success} 
         autoHideDuration={4000} 
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert onClose={handleCloseSnackbar} severity="success">
           {success}
@@ -492,14 +585,14 @@ function Colaboradores() {
         open={!!error} 
         autoHideDuration={4000} 
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert onClose={handleCloseSnackbar} severity="error">
           {error}
         </Alert>
       </Snackbar>
 
-      <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar open={showAdminSnackbar} autoHideDuration={4000} onClose={() => setShowAdminSnackbar(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert onClose={() => setShowAdminSnackbar(false)} severity="info" sx={{ width: '100%' }}>
           {t('youAreLoggedInAsAdmin')}
         </Alert>

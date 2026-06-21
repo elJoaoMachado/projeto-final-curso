@@ -1,15 +1,15 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
-import {BrowserRouter as Router,Routes,Route,Navigate,useLocation,} from "react-router-dom";
-import {Drawer, List, ListItem, ListItemIcon, ListItemText,CssBaseline, Toolbar, AppBar, Typography, Box, Container,IconButton, Tooltip, useTheme, useMediaQuery, ThemeProvider, createTheme, CircularProgress} from "@mui/material";
-import {Menu as MenuIcon, Person as PersonIcon, EventNote as EventNoteIcon,Assessment as AssessmentIcon, AttachMoney as AttachMoneyIcon, Brightness4, Brightness7} from "@mui/icons-material";
-import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, lazy, Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link, useNavigate } from "react-router-dom";
+import { CssBaseline, Toolbar, AppBar, Box, Container, IconButton, Tooltip, Button, Stack, useTheme, useMediaQuery, ThemeProvider, createTheme, CircularProgress } from "@mui/material";
+import { Home as HomeIcon, Group as GroupIcon, EventNote as EventNoteIcon, Assessment as AssessmentIcon, AttachMoney as AttachMoneyIcon, Brightness4, Brightness7, Logout as LogoutIcon } from "@mui/icons-material";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from 'react-i18next';
+import { signOut } from "firebase/auth";
 
 import PrivateRoute from "./PrivateRoute";
 import { AuthProvider } from "./AuthContext";
+import { auth } from "./FirebaseConfig";
 import logo from "./pages/logoTechnoSoftware.png";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import FloatingLangButton from './FloatingLangButton';
 
 const Perfil = lazy(() => import("./pages/Perfil"));
@@ -19,8 +19,6 @@ const Colaboradores = lazy(() => import("./pages/Colaboradores"));
 const Despesas = lazy(() => import("./pages/Despesas"));
 const LoginPage = lazy(() => import("./pages/Login"));
 
-const drawerWidth = 240;
-const collapsedWidth = 70;
 const classicFont = "'Poppins', sans-serif";
 const primaryColor = "#1a237e";
 const lightBlue = "#4f8cff";
@@ -31,168 +29,24 @@ const PageLoader = () => (
   </Box>
 );
 
-const Sidebar = ({ open, toggleDrawer }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { t } = useTranslation();
-
-  return (
-    <Drawer
-      variant={isMobile ? "temporary" : "permanent"}
-      sx={{
-        width: open ? drawerWidth : collapsedWidth,
-        flexShrink: 0,
-        [`& .MuiDrawer-paper`]: {
-          width: open ? drawerWidth : collapsedWidth,
-          transition: "all 0.3s ease-in-out",
-          boxSizing: "border-box",
-          height: "100vh",
-          background: theme.palette.background.default,
-          borderRight: `1px solid ${theme.palette.divider}`,
-          boxShadow: theme.shadows[1],
-        },
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Toolbar sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          minHeight: '60px !important',
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}>
-          <IconButton onClick={toggleDrawer} sx={{ color: theme.palette.primary.main }}>
-            <MenuIcon />
-          </IconButton>
-        </Toolbar>
-        <List sx={{ px: 1.5 }}>
-          {[
-            { text: t('homePage'), icon: <PersonIcon />, path: "/perfil" },
-            { text: t('employees'), icon: <PersonIcon />, path: "/colaboradores" },
-            { text: t('absences'), icon: <EventNoteIcon />, path: "/ausencias" },
-            { text: t('reports'), icon: <AssessmentIcon />, path: "/relatorios" },
-            { text: t('expenses'), icon: <AttachMoneyIcon />, path: "/despesas" },
-          ].map(({ text, icon, path }, index) => (
-            <motion.div
-              key={text}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <Tooltip title={open ? "" : text} placement="right">
-                <ListItem
-                  button
-                  component={Link}
-                  to={path}
-                  sx={{
-                    margin: "4px 0",
-                    borderRadius: "8px",
-                    "&:hover": {
-                      backgroundColor: theme.palette.action.hover,
-                      "& .MuiListItemIcon-root": {
-                        color: theme.palette.primary.main,
-                      },
-                      "& .MuiListItemText-primary": {
-                        color: theme.palette.primary.main,
-                      },
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ 
-                    color: theme.palette.primary.main,
-                    minWidth: '36px'
-                  }}>
-                    {icon}
-                  </ListItemIcon>
-                  {open && (
-                    <ListItemText 
-                      primary={text} 
-                      sx={{ 
-                        color: theme.palette.text.primary,
-                        '& .MuiTypography-root': {
-                          fontWeight: 500,
-                          fontSize: '0.85rem'
-                        }
-                      }} 
-                    />
-                  )}
-                </ListItem>
-              </Tooltip>
-            </motion.div>
-          ))}
-        </List>
-      </motion.div>
-      <List sx={{ px: 1.5, mt: 'auto' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Tooltip title={open ? "" : t('logout')} placement="right">
-            <ListItem
-              button
-              component={Link}
-              to="/"
-              sx={{
-                margin: "4px 0",
-                borderRadius: "8px",
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
-                  "& .MuiListItemIcon-root": {
-                    color: theme.palette.primary.main,
-                  },
-                  "& .MuiListItemText-primary": {
-                    color: theme.palette.primary.main,
-                  },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ 
-                color: theme.palette.primary.main,
-                minWidth: '36px'
-              }}>
-                <ExitToAppIcon />
-              </ListItemIcon>
-              {open && (
-                <ListItemText 
-                  primary={t('logout')} 
-                  sx={{ 
-                    color: theme.palette.text.primary,
-                    '& .MuiTypography-root': {
-                      fontWeight: 500,
-                      fontSize: '0.85rem'
-                    }
-                  }} 
-                />
-              )}
-            </ListItem>
-          </Tooltip>
-        </motion.div>
-      </List>
-    </Drawer>
-  );
-};
-
 const AppContent = () => {
-  const [open, setOpen] = useState(true);
   const [mode, setMode] = useState('light');
-  const toggleDrawer = () => setOpen(!open);
+  const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const { t } = useTranslation();
 
   const location = useLocation();
-  const hideSidebar = location.pathname === "/";
+  const hideHeader = location.pathname === "/" || location.pathname === "/login";
 
-  useEffect(() => {
-    if (isMobile) {
-      setOpen(false);
-    }
-  }, [isMobile]);
+  const navItems = [
+    { text: t('homePage'), icon: <HomeIcon fontSize="small" />, path: '/perfil' },
+    { text: t('employees'), icon: <GroupIcon fontSize="small" />, path: '/colaboradores' },
+    { text: t('absences'), icon: <EventNoteIcon fontSize="small" />, path: '/ausencias' },
+    { text: t('reports'), icon: <AssessmentIcon fontSize="small" />, path: '/relatorios' },
+    { text: t('expenses'), icon: <AttachMoneyIcon fontSize="small" />, path: '/despesas' },
+  ];
 
   const toggleColorMode = () => {
     setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
@@ -237,6 +91,7 @@ const AppContent = () => {
             padding: '6px 16px',
             borderRadius: 10,
             textTransform: 'none',
+            fontWeight: 700,
           },
         },
       },
@@ -283,98 +138,103 @@ const AppContent = () => {
     <ThemeProvider theme={themeConfig}>
       <Box
         sx={{
-          display: "flex",
           minHeight: "100vh",
           background: themeConfig.palette.background.default,
         }}
       >
         <CssBaseline />
 
-        {!hideSidebar && (
+        {!hideHeader && (
           <AppBar
             position="fixed"
             sx={{
-              zIndex: (theme) => theme.zIndex.drawer + 1,
               boxShadow: themeConfig.shadows[1],
               borderBottom: `1px solid ${themeConfig.palette.divider}`,
             }}
           >
-            <Toolbar sx={{ minHeight: '60px !important' }}>
-              <IconButton
-                onClick={toggleDrawer}
+            <Toolbar sx={{ minHeight: '60px !important', gap: 1 }}>
+              <Box component="img" src={logo} alt="Logo" sx={{ height: 26 }} />
+
+              <Stack
+                direction="row"
+                spacing={0.5}
                 sx={{
-                  color: themeConfig.palette.primary.main,
-                  mr: 1.5,
-                  "&:hover": {
-                    backgroundColor: themeConfig.palette.action.hover,
-                  },
+                  ml: 1,
+                  overflowX: 'auto',
+                  flexWrap: isMobile ? 'nowrap' : 'wrap',
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  scrollbarWidth: 'none',
                 }}
               >
-                <MenuIcon />
-              </IconButton>
-              <Typography
-                variant="h5"
-                noWrap
-                component="div"
-                sx={{
-                  fontWeight: "600",
-                  color: themeConfig.palette.primary.main,
-                  fontSize: '1.25rem'
-                }}
-              >
-                TechnoSoftware Dashboard
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', gap: 1.5 }}>
-                <Tooltip title={mode === 'light' ? t('enableDarkTheme') : t('enableLightTheme')}>
-                  <IconButton 
-                    onClick={toggleColorMode} 
-                    color="inherit"
+                {navItems.map(({ text, icon, path }) => (
+                  <Button
+                    key={path}
+                    component={Link}
+                    to={path}
+                    startIcon={icon}
+                    variant={location.pathname === path ? 'contained' : 'text'}
                     sx={{
+                      whiteSpace: 'nowrap',
+                      color: location.pathname === path ? '#fff' : themeConfig.palette.primary.main,
+                    }}
+                  >
+                    {text}
+                  </Button>
+                ))}
+              </Stack>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', gap: 1 }}>
+                <FloatingLangButton inHeader />
+                <Tooltip title={mode === 'light' ? t('enableDarkTheme') : t('enableLightTheme')}>
+                  <IconButton
+                    onClick={toggleColorMode}
+                    size="small"
+                    sx={{
+                      color: themeConfig.palette.primary.main,
                       backgroundColor: themeConfig.palette.action.hover,
                       '&:hover': {
                         backgroundColor: themeConfig.palette.action.selected,
                       },
                     }}
                   >
-                    {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+                    {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
                   </IconButton>
                 </Tooltip>
-                <motion.img
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  src={logo}
-                  alt="Logo"
-                  style={{
-                    height: 32,
+                <Button
+                  color="inherit"
+                  startIcon={<LogoutIcon />}
+                  onClick={async () => {
+                    await signOut(auth);
+                    navigate('/login');
                   }}
-                />
+                >
+                  {t('logout')}
+                </Button>
               </Box>
             </Toolbar>
           </AppBar>
         )}
 
-        {!hideSidebar && <Sidebar open={open} toggleDrawer={toggleDrawer} />}
-
         <Box
           component="main"
           sx={{
-            flexGrow: 1,
-            p: 2,
-            marginTop: hideSidebar ? 0 : 6,
+            p: { xs: 1.5, md: 2.5 },
+            marginTop: hideHeader ? 0 : 8,
             overflowX: "hidden",
             background: themeConfig.palette.background.default,
+            flexGrow: 1,
           }}
         >
-          <Container maxWidth="lg">
+          <Container maxWidth={false} sx={{ maxWidth: '1220px', px: { xs: 0.5, md: 1.5 } }}>
             <Suspense fallback={<PageLoader />}>
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={location.pathname}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 12, scale: 0.992 }}
+                  animate={prefersReducedMotion ? {} : { opacity: 1, y: 0, scale: 1 }}
+                  exit={prefersReducedMotion ? {} : { opacity: 0, y: -8, scale: 0.996 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ willChange: 'transform, opacity' }}
                 >
                   <Routes>
                     <Route path="/" element={<LoginPage />} />
@@ -392,7 +252,6 @@ const AppContent = () => {
           </Container>
         </Box>
       </Box>
-      <FloatingLangButton />
     </ThemeProvider>
   );
 };
