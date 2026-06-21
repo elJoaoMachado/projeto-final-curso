@@ -1,7 +1,7 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link, useNavigate } from "react-router-dom";
-import { CssBaseline, Toolbar, AppBar, Box, Container, IconButton, Tooltip, Button, Stack, useTheme, useMediaQuery, ThemeProvider, createTheme, CircularProgress } from "@mui/material";
-import { Home as HomeIcon, Group as GroupIcon, EventNote as EventNoteIcon, Assessment as AssessmentIcon, AttachMoney as AttachMoneyIcon, Brightness4, Brightness7, Logout as LogoutIcon } from "@mui/icons-material";
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, CssBaseline, Toolbar, Box, Container, IconButton, Tooltip, useTheme, useMediaQuery, ThemeProvider, createTheme, CircularProgress } from "@mui/material";
+import { Menu as MenuIcon, Home as HomeIcon, Group as GroupIcon, EventNote as EventNoteIcon, Assessment as AssessmentIcon, AttachMoney as AttachMoneyIcon, Brightness4, Brightness7, Logout as LogoutIcon } from "@mui/icons-material";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from 'react-i18next';
 import { signOut } from "firebase/auth";
@@ -19,6 +19,8 @@ const Colaboradores = lazy(() => import("./pages/Colaboradores"));
 const Despesas = lazy(() => import("./pages/Despesas"));
 const LoginPage = lazy(() => import("./pages/Login"));
 
+const drawerWidth = 240;
+const collapsedWidth = 70;
 const classicFont = "'Poppins', sans-serif";
 const primaryColor = "#1a237e";
 const lightBlue = "#4f8cff";
@@ -29,24 +31,158 @@ const PageLoader = () => (
   </Box>
 );
 
+const Sidebar = ({ open, toggleDrawer, onLogout, mode, onToggleColorMode }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation();
+
+  const menuItems = [
+    { text: t('homePage'), icon: <HomeIcon />, path: '/perfil' },
+    { text: t('employees'), icon: <GroupIcon />, path: '/colaboradores' },
+    { text: t('absences'), icon: <EventNoteIcon />, path: '/ausencias' },
+    { text: t('reports'), icon: <AssessmentIcon />, path: '/relatorios' },
+    { text: t('expenses'), icon: <AttachMoneyIcon />, path: '/despesas' },
+  ];
+
+  return (
+    <Drawer
+      variant={isMobile ? 'temporary' : 'permanent'}
+      open={open}
+      onClose={toggleDrawer}
+      sx={{
+        width: open ? drawerWidth : collapsedWidth,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: {
+          width: open ? drawerWidth : collapsedWidth,
+          transition: 'all 0.25s ease-in-out',
+          boxSizing: 'border-box',
+          height: '100vh',
+          background: theme.palette.background.default,
+          borderRight: `1px solid ${theme.palette.divider}`,
+          boxShadow: theme.shadows[1],
+          overflowX: 'hidden',
+        },
+      }}
+    >
+      <Toolbar
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: open ? 'space-between' : 'center',
+          minHeight: '60px !important',
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        {open && <Box component="img" src={logo} alt="Logo" sx={{ height: 24 }} />}
+        <IconButton onClick={toggleDrawer} sx={{ color: theme.palette.primary.main }}>
+          <MenuIcon />
+        </IconButton>
+      </Toolbar>
+
+      <Box sx={{ px: 1.2, py: 1, display: 'flex', alignItems: 'center', justifyContent: open ? 'space-between' : 'center', gap: 0.8 }}>
+        <FloatingLangButton inHeader />
+        <Tooltip title={mode === 'light' ? t('enableDarkTheme') : t('enableLightTheme')}>
+          <IconButton
+            onClick={onToggleColorMode}
+            size="small"
+            sx={{
+              color: theme.palette.primary.main,
+              backgroundColor: theme.palette.action.hover,
+              '&:hover': {
+                backgroundColor: theme.palette.action.selected,
+              },
+            }}
+          >
+            {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <List sx={{ px: 1.2 }}>
+        {menuItems.map(({ text, icon, path }) => (
+          <ListItem
+            key={path}
+            button
+            component={Link}
+            to={path}
+            sx={{
+              my: 0.5,
+              borderRadius: 2,
+              minHeight: 42,
+              '&:hover': {
+                backgroundColor: theme.palette.action.hover,
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: theme.palette.primary.main, minWidth: 36 }}>
+              {icon}
+            </ListItemIcon>
+            {open && (
+              <ListItemText
+                primary={text}
+                sx={{
+                  '& .MuiTypography-root': {
+                    fontWeight: 500,
+                    fontSize: '0.85rem',
+                  },
+                }}
+              />
+            )}
+          </ListItem>
+        ))}
+      </List>
+
+      <List sx={{ px: 1.2, mt: 'auto', mb: 1 }}>
+        <ListItem
+          button
+          onClick={onLogout}
+          sx={{
+            my: 0.5,
+            borderRadius: 2,
+            minHeight: 42,
+            '&:hover': {
+              backgroundColor: theme.palette.action.hover,
+            },
+          }}
+        >
+          <ListItemIcon sx={{ color: theme.palette.primary.main, minWidth: 36 }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          {open && (
+            <ListItemText
+              primary={t('logout')}
+              sx={{
+                '& .MuiTypography-root': {
+                  fontWeight: 500,
+                  fontSize: '0.85rem',
+                },
+              }}
+            />
+          )}
+        </ListItem>
+      </List>
+    </Drawer>
+  );
+};
+
 const AppContent = () => {
+  const [open, setOpen] = useState(true);
   const [mode, setMode] = useState('light');
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const { t } = useTranslation();
 
   const location = useLocation();
-  const hideHeader = location.pathname === "/" || location.pathname === "/login";
+  const hideSidebar = location.pathname === "/" || location.pathname === "/login";
 
-  const navItems = [
-    { text: t('homePage'), icon: <HomeIcon fontSize="small" />, path: '/perfil' },
-    { text: t('employees'), icon: <GroupIcon fontSize="small" />, path: '/colaboradores' },
-    { text: t('absences'), icon: <EventNoteIcon fontSize="small" />, path: '/ausencias' },
-    { text: t('reports'), icon: <AssessmentIcon fontSize="small" />, path: '/relatorios' },
-    { text: t('expenses'), icon: <AttachMoneyIcon fontSize="small" />, path: '/despesas' },
-  ];
+  useEffect(() => {
+    if (isMobile) {
+      setOpen(false);
+    }
+  }, [isMobile]);
+
+  const toggleDrawer = () => setOpen(!open);
 
   const toggleColorMode = () => {
     setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
@@ -138,88 +274,49 @@ const AppContent = () => {
     <ThemeProvider theme={themeConfig}>
       <Box
         sx={{
+          display: 'flex',
           minHeight: "100vh",
           background: themeConfig.palette.background.default,
         }}
       >
         <CssBaseline />
 
-        {!hideHeader && (
-          <AppBar
-            position="fixed"
+        {!hideSidebar && (
+          <Sidebar
+            open={open}
+            toggleDrawer={toggleDrawer}
+            mode={mode}
+            onToggleColorMode={toggleColorMode}
+            onLogout={async () => {
+              await signOut(auth);
+              navigate('/login');
+            }}
+          />
+        )}
+
+        {!hideSidebar && isMobile && !open && (
+          <IconButton
+            onClick={toggleDrawer}
             sx={{
-              boxShadow: themeConfig.shadows[1],
-              borderBottom: `1px solid ${themeConfig.palette.divider}`,
+              position: 'fixed',
+              top: 12,
+              left: 12,
+              zIndex: 1300,
+              color: themeConfig.palette.primary.main,
+              backgroundColor: themeConfig.palette.background.paper,
+              boxShadow: themeConfig.shadows[2],
+              '&:hover': { backgroundColor: themeConfig.palette.action.hover },
             }}
           >
-            <Toolbar sx={{ minHeight: '60px !important', gap: 1 }}>
-              <Box component="img" src={logo} alt="Logo" sx={{ height: 26 }} />
-
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{
-                  ml: 1,
-                  overflowX: 'auto',
-                  flexWrap: isMobile ? 'nowrap' : 'wrap',
-                  '&::-webkit-scrollbar': { display: 'none' },
-                  scrollbarWidth: 'none',
-                }}
-              >
-                {navItems.map(({ text, icon, path }) => (
-                  <Button
-                    key={path}
-                    component={Link}
-                    to={path}
-                    startIcon={icon}
-                    variant={location.pathname === path ? 'contained' : 'text'}
-                    sx={{
-                      whiteSpace: 'nowrap',
-                      color: location.pathname === path ? '#fff' : themeConfig.palette.primary.main,
-                    }}
-                  >
-                    {text}
-                  </Button>
-                ))}
-              </Stack>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', gap: 1 }}>
-                <FloatingLangButton inHeader />
-                <Tooltip title={mode === 'light' ? t('enableDarkTheme') : t('enableLightTheme')}>
-                  <IconButton
-                    onClick={toggleColorMode}
-                    size="small"
-                    sx={{
-                      color: themeConfig.palette.primary.main,
-                      backgroundColor: themeConfig.palette.action.hover,
-                      '&:hover': {
-                        backgroundColor: themeConfig.palette.action.selected,
-                      },
-                    }}
-                  >
-                    {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
-                  </IconButton>
-                </Tooltip>
-                <Button
-                  color="inherit"
-                  startIcon={<LogoutIcon />}
-                  onClick={async () => {
-                    await signOut(auth);
-                    navigate('/login');
-                  }}
-                >
-                  {t('logout')}
-                </Button>
-              </Box>
-            </Toolbar>
-          </AppBar>
+            <MenuIcon />
+          </IconButton>
         )}
 
         <Box
           component="main"
           sx={{
             p: { xs: 1.5, md: 2.5 },
-            marginTop: hideHeader ? 0 : 8,
+            marginTop: 0,
             overflowX: "hidden",
             background: themeConfig.palette.background.default,
             flexGrow: 1,
