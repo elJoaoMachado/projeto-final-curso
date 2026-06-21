@@ -117,7 +117,7 @@ const AppContent = () => {
           </AppBar>
         )}
 
-        <Box component="main" sx={{ p: { xs: 1.5, md: 2.5 }, pt: hideHeader ? { xs: 1.5, md: 2.5 } : 10, overflowX: 'hidden', background: themeConfig.palette.background.default, minHeight: '100vh' }}>
+        <Box component="main" sx={{ p: { xs: 1.5, md: 2.5 }, marginTop: hideHeader ? 0 : '68px', overflowX: 'hidden', background: themeConfig.palette.background.default, minHeight: '100vh' }}>
           <Container maxWidth={false} sx={{ maxWidth: '1220px', px: { xs: 0.5, md: 1.5 } }}>
             <Suspense fallback={<PageLoader />}>
               <AnimatePresence mode="wait" initial={false}>
