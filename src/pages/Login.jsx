@@ -107,31 +107,27 @@ export default function LoginPage() {
   return (
     <Box
       sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        minHeight: '100vh',
-        minWidth: '100vw',
+        position: 'relative',
+        width: '100%',
+        minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-        padding: 0,
+        px: 2,
+        py: 3,
         margin: 0,
         gap: 0,
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
       }}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ width: '100%' }}
+        style={{ width: '100%', maxWidth: 420, margin: '0 auto' }}
       >
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}

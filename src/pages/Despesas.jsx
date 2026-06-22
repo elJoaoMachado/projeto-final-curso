@@ -10,14 +10,14 @@ import { storage } from '../FirebaseConfig';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { motion } from 'framer-motion';
-import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon, FilterList } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon } from '@mui/icons-material';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const CARD_WIDTH = 340;
-const CARD_HEIGHT = 340;
+const CARD_WIDTH = 220;
+const CARD_HEIGHT = 280;
 
 const Despesas = () => {
   const [despesas, setDespesas] = useState([]);
@@ -37,7 +37,7 @@ const Despesas = () => {
     type: ''
   });
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(6);
+  const [rowsPerPage, setRowsPerPage] = useState(12);
   const navigate = useNavigate();
   const auth = getAuth();
   const [showAdminSnackbar, setShowAdminSnackbar] = useState(false);
@@ -97,21 +97,26 @@ const Despesas = () => {
 
       // Get user names for all expenses
       const despesasComNomes = await Promise.all(despesasData.map(async (despesa) => {
+        let displayName = despesa.userName;
+        
         if (despesa.userId) {
           const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', despesa.userId)));
           if (!userDoc.empty) {
             const userData = userDoc.docs[0].data();
-            return {
-              ...despesa,
-              userName: userData.name || despesa.userName,
-              expenseDate: new Date(despesa.data),
-              year: new Date(despesa.data).getFullYear(),
-              month: new Date(despesa.data).getMonth()
-            };
+            displayName = userData.name || userData.displayName || despesa.userName;
           }
         }
+        
+        // If displayName is still an email, try to extract a readable name
+        if (displayName && displayName.includes('@')) {
+          displayName = displayName.split('@')[0];
+          // Capitalize first letter
+          displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        }
+        
         return {
           ...despesa,
+          userName: displayName,
           expenseDate: new Date(despesa.data),
           year: new Date(despesa.data).getFullYear(),
           month: new Date(despesa.data).getMonth()
@@ -232,7 +237,14 @@ const Despesas = () => {
 
       // Get user name
       const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', user.email)));
-      const userName = userDoc.empty ? user.email : userDoc.docs[0].data().name;
+      let userName = userDoc.empty ? user.email : (userDoc.docs[0].data().name || userDoc.docs[0].data().displayName || user.email);
+      
+      // If userName is an email, extract a readable name from it
+      if (userName && userName.includes('@')) {
+        userName = userName.split('@')[0];
+        // Capitalize first letter
+        userName = userName.charAt(0).toUpperCase() + userName.slice(1);
+      }
 
       if (newDespesa.arquivo) {
         const storageRef = ref(storage, `despesas/${user.uid}/${newDespesa.arquivo.name}`);
@@ -319,7 +331,7 @@ const Despesas = () => {
   };
 
   return (
-    <Box sx={{ py: 2, px: 2 }}>
+    <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
           {t('expenses')}
@@ -342,9 +354,6 @@ const Despesas = () => {
       <Box>
         {/* Search Filters */}
         <Box sx={{ mb: 3, p: 3, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, textAlign: 'center' }}>
-            <FilterList /> {t('searchFilters')}
-          </Typography>
           <Grid container spacing={2} justifyContent="center" alignItems="center">
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ minWidth: 240 }}>
@@ -420,20 +429,20 @@ const Despesas = () => {
         {loading && <LinearProgress sx={{ mb: 2 }} />}
 
         {loading && filteredDespesas.length === 0 ? (
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
             {Array.from({ length: 6 }).map((_, idx) => (
-              <Grid item xs={12} sm={6} md={4} key={idx}>
-                <Skeleton variant="rounded" height={260} />
-              </Grid>
+              <Box key={idx} sx={{ display: 'flex', justifyContent: 'center', flex: '0 1 220px' }}>
+                <Skeleton variant="rounded" height={280} width={220} />
+              </Box>
             ))}
-          </Grid>
+          </Box>
         ) : filteredDespesas.length > 0 ? (
           <>
-            <Grid container spacing={3} justifyContent="center">
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
                 {filteredDespesas
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((despesa) => (
-                    <Grid item xs={12} sm={6} md={4} key={despesa.id} sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Box key={despesa.id} sx={{ display: 'flex', justifyContent: 'center', flex: '0 1 220px' }}>
                       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                         <Paper
                           elevation={8}
@@ -450,30 +459,36 @@ const Despesas = () => {
                             maxHeight: `${CARD_HEIGHT}px`,
                           }}
                         >
-                          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <CardContent sx={{ pb: 1, flexGrow: 1 }}>
-                              <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
+                          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <CardContent sx={{ pb: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 0 }}>
                                 {t('expenseType_' + (['Food','Transport','Accommodation','Other'].includes(despesa.tipo) ? despesa.tipo.toLowerCase() : 'other'))}
                               </Typography>
-                              <Typography variant="body1" sx={{ mb: 1 }}>
-                                <strong>{t('value')}:</strong> {despesa.valor} €
-                              </Typography>
-                              <Typography variant="body1" sx={{ mb: 1 }}>
-                                <strong>{t('date')}:</strong> {new Date(despesa.data).toLocaleDateString()}
-                              </Typography>
-                              {isAdmin && (
-                                <Typography variant="body1" sx={{ mb: 1 }}>
-                                  <strong>{t('registeredBy')}:</strong> {despesa.userName}
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.875rem' }}>
+                                <Typography variant="body2" sx={{ mb: 0 }}>
+                                  <strong>{t('value')}:</strong> {despesa.valor} €
                                 </Typography>
-                              )}
-                              {despesa.arquivoURL && (
-                                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="body2" sx={{ mb: 0 }}>
+                                  <strong>{t('date')}:</strong> {new Date(despesa.data).toLocaleDateString()}
+                                </Typography>
+                                {isAdmin && (
+                                  <Typography variant="body2" sx={{ mb: 0 }}>
+                                    <strong>{t('registeredBy')}:</strong> {despesa.userName}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </CardContent>
+                            <CardActions sx={{ justifyContent: 'space-between', p: 1, pt: 0 }}>
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                {despesa.arquivoURL && (
                                   <Button
                                     variant="text"
                                     color="primary"
+                                    size="small"
                                     onClick={() => window.open(despesa.arquivoURL, '_blank')}
                                     sx={{
                                       textTransform: 'none',
+                                      fontSize: '0.75rem',
                                       '&:hover': {
                                         backgroundColor: 'rgba(26, 35, 126, 0.04)',
                                       },
@@ -481,13 +496,12 @@ const Despesas = () => {
                                   >
                                     {t('viewReceipt')}
                                   </Button>
-                                </Box>
-                              )}
-                            </CardContent>
-                            <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
+                                )}
+                              </Box>
                               {(isAdmin || despesa.userId === auth.currentUser?.uid) && (
                                 <Tooltip title={t('delete')}>
                                   <IconButton
+                                    size="small"
                                     onClick={() => handleDelete(despesa.id, despesa.arquivoURL)}
                                     sx={{
                                       color: '#d32f2f',
@@ -496,7 +510,7 @@ const Despesas = () => {
                                       },
                                     }}
                                   >
-                                    <DeleteIcon />
+                                    <DeleteIcon sx={{ fontSize: '1.2rem' }} />
                                   </IconButton>
                                 </Tooltip>
                               )}
@@ -504,9 +518,9 @@ const Despesas = () => {
                           </Card>
                         </Paper>
                       </Box>
-                    </Grid>
+                    </Box>
                   ))}
-            </Grid>
+          </Box>
             <TablePagination
               component="div"
               count={filteredDespesas.length}
@@ -514,7 +528,7 @@ const Despesas = () => {
               onPageChange={handleChangePage}
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={handleChangeRowsPerPage}
-              rowsPerPageOptions={[6, 12, 24]}
+              rowsPerPageOptions={[12, 24, 36]}
               labelRowsPerPage={t('rowsPerPage')}
               sx={{
                 '& .MuiTablePagination-toolbar': {
@@ -535,9 +549,10 @@ const Despesas = () => {
             {t('noExpensesFound')}
           </Typography>
         )}
+      </Box>
 
-        <Dialog
-          open={openForm}
+      <Dialog
+        open={openForm}
           onClose={() => {
             if (!loading) {
               setOpenForm(false);
@@ -553,7 +568,7 @@ const Despesas = () => {
             },
           }}
         >
-          <DialogTitle sx={{ color: '#1a237e', fontWeight: 'bold' }}>
+          <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>
             {t('newExpense')}
           </DialogTitle>
           <DialogContent>
@@ -678,14 +693,7 @@ const Despesas = () => {
               }}
               variant="contained"
               disabled={loading}
-              sx={{
-                background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
-                color: 'white',
-                fontWeight: 'bold',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #283593 30%, #1a237e 90%)',
-                },
-              }}
+              sx={{ fontWeight: 'bold' }}
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : t('save')}
             </Button>
@@ -720,8 +728,7 @@ const Despesas = () => {
             {t('adminLoggedIn')}
           </Alert>
         </Snackbar>
-      </Box>
-    </Box>
+    </>
   );
 };
 

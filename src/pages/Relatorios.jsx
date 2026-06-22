@@ -14,7 +14,7 @@ import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
-import { FilterList, Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
+import { Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -326,7 +326,7 @@ const Relatorios = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', padding: 2, position: 'relative', minHeight: '100vh' }}>
+    <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
           {t('reports')}
@@ -345,9 +345,6 @@ const Relatorios = () => {
       </Box>
       {/* Search Filters */}
       <Box sx={{ mb: 3, p: 3, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, textAlign: 'center' }}>
-          <FilterList /> {t('searchFilters')}
-        </Typography>
         <Grid container spacing={2} justifyContent="center" alignItems="center">
           <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth size="medium" sx={{ minWidth: 260 }}>
@@ -485,7 +482,7 @@ const Relatorios = () => {
         </>
       ) : (
         <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', mt: 4 }}>
-          {t('noPdfFilesFound')}
+          {t('noReportsFound')}
         </Typography>
       )}
 
@@ -493,7 +490,7 @@ const Relatorios = () => {
         open={Boolean(fileToDelete)} 
         onClose={() => setFileToDelete(null)}
       >
-        <DialogTitle>{t('confirmDeletion')}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('confirmDeletion')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {t('confirmDeleteFileText')}
@@ -510,6 +507,8 @@ const Relatorios = () => {
           <Button 
             onClick={handleDeleteFile} 
             color="error" 
+            variant="contained"
+            sx={{ fontWeight: 'bold' }}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} /> : t('delete')}
@@ -548,7 +547,7 @@ const Relatorios = () => {
 
       {/* Dialog para upload de PDF */}
       <Dialog open={openUploadDialog} onClose={handleCloseUploadDialog} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('uploadPdf')}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('uploadPdf')}</DialogTitle>
         <DialogContent>
           <Button
             variant="outlined"
@@ -579,12 +578,12 @@ const Relatorios = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseUploadDialog}>{t('cancel')}</Button>
-          <Button onClick={handleUploadSelectedFiles} variant="contained" disabled={selectedFiles.length === 0 || loading}>
+          <Button onClick={handleUploadSelectedFiles} variant="contained" sx={{ fontWeight: 'bold' }} disabled={selectedFiles.length === 0 || loading}>
             {loading ? <CircularProgress size={20} /> : t('upload')}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </>
   );
 };
 

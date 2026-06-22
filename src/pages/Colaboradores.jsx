@@ -336,7 +336,9 @@ function Colaboradores() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setNewEmployee(null)}>{t('cancel')}</Button>
-            <Button onClick={handleAddEmployee}>{t('add')}</Button>
+            <Button onClick={handleAddEmployee} variant="contained" sx={{ fontWeight: 'bold' }}>
+              {t('add')}
+            </Button>
           </DialogActions>
         </Dialog>
       )}
@@ -550,7 +552,9 @@ function Colaboradores() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setSelectedEmployee(null)}>{t('cancel')}</Button>
-            <Button onClick={handleSave}>{t('save')}</Button>
+            <Button onClick={handleSave} variant="contained" sx={{ fontWeight: 'bold' }}>
+              {t('save')}
+            </Button>
           </DialogActions>
         </Dialog>
       )}
@@ -558,13 +562,15 @@ function Colaboradores() {
       {/* Delete Confirmation Dialog */}
       {employeeToDelete && (
         <Dialog open onClose={() => setEmployeeToDelete(null)}>
-          <DialogTitle sx={{ fontWeight: 800 }}>{t('deleteEmployee')}</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('deleteEmployee')}</DialogTitle>
           <DialogContent>
             {t('areYouSureYouWantToDeleteThisEmployee')}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEmployeeToDelete(null)} sx={{ fontWeight: 700 }}>{t('cancel')}</Button>
-            <Button onClick={handleDelete} color="error" sx={{ fontWeight: 700 }}>{t('yesDelete')}</Button>
+            <Button onClick={handleDelete} color="error" variant="contained" sx={{ fontWeight: 700 }}>
+              {t('yesDelete')}
+            </Button>
           </DialogActions>
         </Dialog>
       )}

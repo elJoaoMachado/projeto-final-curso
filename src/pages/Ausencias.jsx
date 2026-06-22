@@ -279,7 +279,7 @@ export default function PaginaAusencias() {
                 slotProps={{
                   textField: {
                     fullWidth: true,
-                    size: "small"
+                    size: "medium"
                   }
                 }}
               />
@@ -309,6 +309,7 @@ export default function PaginaAusencias() {
                 }
               }}
               startIcon={<Add />}
+              sx={{ fontWeight: 'bold' }}
             >
               {t('register')}
             </Button>
@@ -318,7 +319,7 @@ export default function PaginaAusencias() {
         {/* Delete Confirmation Dialog */}
         {absenceToDelete && (
           <Dialog open onClose={() => setAbsenceToDelete(null)}>
-            <DialogTitle>{t('deleteAbsence')}</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('deleteAbsence')}</DialogTitle>
             <DialogContent>
               <Typography>
                 {t('areYouSureYouWantToDeleteTheAbsenceFor')}
@@ -328,7 +329,9 @@ export default function PaginaAusencias() {
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setAbsenceToDelete(null)}>{t('cancel')}</Button>
-              <Button onClick={handleDeleteAbsence} color="error">{t('yesDelete')}</Button>
+              <Button onClick={handleDeleteAbsence} color="error" variant="contained" sx={{ fontWeight: 'bold' }}>
+                {t('yesDelete')}
+              </Button>
             </DialogActions>
           </Dialog>
         )}

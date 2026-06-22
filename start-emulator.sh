@@ -26,5 +26,5 @@ echo "Hosting:    http://localhost:5002"
 echo "Emulator UI: http://localhost:4001"
 echo ""
 
-# Start emulators
-./node_modules/.bin/firebase emulators:start --only firestore,functions,hosting "$@"
+# Start emulators (including Storage for file uploads)
+./node_modules/.bin/firebase emulators:start --only firestore,functions,hosting,storage "$@"

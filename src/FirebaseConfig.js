@@ -21,4 +21,23 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
+// Connect to emulator in development
+if (process.env.NODE_ENV === 'development') {
+  // Check if we're not already connected to avoid multiple connections
+  if (window.location.hostname === 'localhost') {
+    try {
+      // Connect Firestore emulator
+      const firestoreEmulatorHost = localStorage.getItem('firestore_emulator_connected');
+      if (!firestoreEmulatorHost) {
+        import('firebase/firestore').then(({ connectFirestoreEmulator }) => {
+          connectFirestoreEmulator(db, 'localhost', 8080);
+          localStorage.setItem('firestore_emulator_connected', 'true');
+        });
+      }
+    } catch (error) {
+      console.log('Firestore emulator connection error (this is normal if emulator is not running):', error.message);
+    }
+  }
+}
+
 export default app;

@@ -2,14 +2,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Typography, Avatar, Paper, Grid, Card, CardContent,
   useTheme, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Skeleton,
-  FormControl, InputLabel, Select, MenuItem
+  FormControl, InputLabel, Select, MenuItem, CircularProgress, Alert
 } from "@mui/material";
 import { getAuth } from 'firebase/auth';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../FirebaseConfig';
-import { Work as WorkIcon, Business as BusinessIcon, CalendarToday as CalendarIcon, Edit as EditIcon, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { db, storage } from '../FirebaseConfig';
+import { Work as WorkIcon, Business as BusinessIcon, CalendarToday as CalendarIcon, Edit as EditIcon, ChevronLeft, ChevronRight, CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt';
 import 'dayjs/locale/en';
@@ -23,6 +24,9 @@ const Perfil = () => {
   const [weeklyAbsences, setWeeklyAbsences] = useState({});
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState('');
   const auth = getAuth();
   const user = auth.currentUser;
   const theme = useTheme();
@@ -103,6 +107,73 @@ const Perfil = () => {
     setEditing(false);
   };
 
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError(t('fileTooLarge'));
+      return;
+    }
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      setUploadError(t('invalidFileType'));
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess('');
+
+    try {
+      const timestamp = Date.now();
+      const filename = `perfil_${user.uid}_${timestamp}_${file.name}`;
+      const storageRef = ref(storage, `profile-photos/${filename}`);
+
+      // Tentar upload para Firebase Storage
+      try {
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        setEditData({ ...editData, photoURL: downloadURL, photoStorageType: 'firebase' });
+        setUploadSuccess(t('photoUploadedSuccessfully'));
+      } catch (firebaseError) {
+        console.error('Firebase upload error:', firebaseError);
+        
+        // Fallback: armazenar foto em localStorage para desenvolvimento
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataURL = e.target.result;
+          // Armazenar em localStorage
+          localStorage.setItem(`userPhoto_${user.uid}`, dataURL);
+          // Guardar referência no Firestore
+          setEditData({ ...editData, photoURL: 'local', photoStorageType: 'localStorage' });
+          setUploadSuccess(t('photoUploadedSuccessfully'));
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(t('photoUploadFailed'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Função para obter a URL da foto
+  const getPhotoURL = (userDataObj) => {
+    if (!userDataObj.photoURL) return null;
+    
+    // Se for "local", buscar do localStorage
+    if (userDataObj.photoStorageType === 'localStorage' || userDataObj.photoURL === 'local') {
+      return localStorage.getItem(`userPhoto_${user.uid}`);
+    }
+    
+    // Caso contrário, retornar a URL do Firebase
+    return userDataObj.photoURL;
+  };
+
   if (!userData) {
     return (
       <Box sx={{ py: 3, px: 2 }}>
@@ -149,7 +220,7 @@ const Perfil = () => {
                 <Box>
                   <Box sx={{ position: 'relative', width: 120, height: 120, mb: 2 }}>
                     <Avatar
-                      src={userData.photoURL || ''}
+                      src={getPhotoURL(userData) || ''}
                       alt="Profile photo"
                       sx={{
                         width: 120,
@@ -239,7 +310,7 @@ const Perfil = () => {
                   <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <Card sx={{ background: theme.palette.action.hover, width: '100%', maxWidth: 430, minHeight: { xs: 420, md: 500 }, display: 'flex', flexDirection: 'column' }}>
                       <CardContent sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Box sx={{ width: '100%', maxWidth: 360, mx: 'auto' }}>
+                        <Box sx={{ width: '100%', maxWidth: 500, mx: 'auto' }}>
                           <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif", textAlign: 'center' }}>
                             {t('weeklyAbsenceCalendar')}
                           </Typography>
@@ -311,115 +382,121 @@ const Perfil = () => {
       </Box>
 
       <Dialog open={editing} onClose={handleCancelEdit} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('editProfile')}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('editProfile')}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={t('name')}
-                value={editData.name || ''}
-                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={t('email')}
-                value={editData.email || ''}
-                margin="normal"
-                disabled
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={t('admissionDate')}
-                value={editData.date || ''}
-                onChange={(e) => setEditData({ ...editData, date: e.target.value })}
-                margin="normal"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={t('position')}
-                value={editData.role || ''}
-                onChange={(e) => setEditData({ ...editData, role: e.target.value })}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth margin="normal">
-                <InputLabel id="profile-department-label">{t('department')}</InputLabel>
-                <Select
-                  labelId="profile-department-label"
-                  label={t('department')}
-                  value={editData.department || editData.Department || ''}
-                  onChange={(e) => setEditData({ ...editData, department: e.target.value, Department: e.target.value })}
-                >
-                  {departamentos.map((dep) => (
-                    <MenuItem key={dep} value={dep}>{dep}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={t('profileNumber')}
-                value={editData.profileNumber || ''}
-                onChange={(e) => setEditData({ ...editData, profileNumber: e.target.value })}
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t('photoUrl')}
-                value={editData.photoURL || ''}
-                onChange={(e) => setEditData({ ...editData, photoURL: e.target.value })}
-                margin="normal"
-              />
-            </Grid>
-          </Grid>
+          <TextField
+            fullWidth
+            label={t('name')}
+            margin="dense"
+            value={editData.name || ''}
+            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+          />
+          <TextField
+            fullWidth
+            label={t('email')}
+            margin="dense"
+            value={editData.email || ''}
+            disabled
+          />
+          <TextField
+            fullWidth
+            label={t('admissionDate')}
+            margin="dense"
+            type="date"
+            value={editData.date || ''}
+            onChange={(e) => setEditData({ ...editData, date: e.target.value })}
+            InputLabelProps={{ shrink: true }}
+          />
+          <FormControl fullWidth margin="dense">
+            <InputLabel id="profile-department-label">{t('department')}</InputLabel>
+            <Select
+              labelId="profile-department-label"
+              label={t('department')}
+              value={editData.department || editData.Department || ''}
+              onChange={(e) => setEditData({ ...editData, department: e.target.value, Department: e.target.value })}
+            >
+              {departamentos.map((dep) => (
+                <MenuItem key={dep} value={dep}>{dep}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            fullWidth
+            label={t('position')}
+            margin="dense"
+            value={editData.role || ''}
+            onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+          />
+          <TextField
+            fullWidth
+            label={t('profileNumber')}
+            margin="dense"
+            value={editData.profileNumber || ''}
+            onChange={(e) => setEditData({ ...editData, profileNumber: e.target.value })}
+          />
+          <Box sx={{ mt: 2, mb: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>{t('photo')}</Typography>
+            {uploadSuccess && <Alert severity="success" sx={{ mb: 2 }}>{uploadSuccess}</Alert>}
+            {uploadError && <Alert severity="error" sx={{ mb: 2 }}>{uploadError}</Alert>}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                disabled={uploading}
+              >
+                {uploading ? t('uploading') : t('selectPhoto')}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                />
+              </Button>
+              {editData.photoURL && (
+                <Avatar
+                  src={getPhotoURL(editData) || editData.photoURL}
+                  alt="Preview"
+                  sx={{ width: 48, height: 48 }}
+                />
+              )}
+            </Box>
+          </Box>
           <TextField
             fullWidth
             label={t('scales')}
+            margin="dense"
             value={editData.scales || ''}
             onChange={(e) => setEditData({ ...editData, scales: e.target.value })}
-            margin="normal"
           />
           <TextField
             fullWidth
             label={t('studies')}
+            margin="dense"
             value={editData.studies || ''}
             onChange={(e) => setEditData({ ...editData, studies: e.target.value })}
-            margin="normal"
           />
           <TextField
             fullWidth
             label={t('trainings')}
+            margin="dense"
             value={editData.trainings || ''}
             onChange={(e) => setEditData({ ...editData, trainings: e.target.value })}
-            margin="normal"
           />
           <TextField
             fullWidth
             label={t('other')}
+            margin="dense"
             value={editData.otherInfo || ''}
             onChange={(e) => setEditData({ ...editData, otherInfo: e.target.value })}
-            margin="normal"
-            multiline
-            minRows={2}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelEdit}>{t('cancel')}</Button>
-          <Button onClick={handleSaveProfile} variant="contained">{t('save')}</Button>
+          <Button onClick={handleSaveProfile} variant="contained" sx={{ fontWeight: 'bold' }}>
+            {t('save')}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

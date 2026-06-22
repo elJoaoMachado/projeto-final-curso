@@ -40,7 +40,7 @@
   "month_october": "Outubro",
   "month_november": "Novembro",
   "month_december": "Dezembro",
-  "newPDF": "Novo PDF",
+  "newPDF": "Novo Relatório",
   "searchFilters": "Filtros de Pesquisa",
   "person": "Pessoa",
   "year": "Ano",
@@ -97,6 +97,7 @@
   "rowsPerPage": "Linhas por página:",
   "uploadedBy": "Enviado por",
   "noPdfFilesFound": "Nenhum PDF encontrado.",
+  "noReportsFound": "Nenhum relatório encontrado.",
   "upload": "Carregar",
   "attachReport": "Anexar Relatório",
   "definePasswordForEmailLogin": "Definir senha para login por email",
@@ -144,7 +145,7 @@
   "errorLoadingPdfPreview": "Erro ao carregar pré-visualização do PDF.",
   "confirmDeletion": "Confirmar Eliminação",
   "confirmDeleteFileText": "Tem a certeza de que pretende eliminar este ficheiro? Esta ação não pode ser desfeita.",
-  "uploadPdf": "Carregar PDF",
+  "uploadPdf": "Carregar Relatório",
   "fileTooLargeMaxSize": "O ficheiro é demasiado grande. Tamanho máximo permitido: {{size}}MB.",
   "mustBeLoggedInAddExpense": "Tem de iniciar sessão para adicionar uma despesa.",
   "pleaseSelectExpenseType": "Selecione o tipo de despesa.",
@@ -161,5 +162,12 @@
   "weeklyPeakDay": "Dia de pico: {{day}} ({{count}})",
   "exportWeekCsv": "Exportar semana CSV"
   ,"passwordResetConfigError": "Não foi possível enviar o email de definição de senha. Verifique a configuração de domínios autorizados no Firebase.",
-  "passwordResetUnexpectedError": "Não foi possível enviar o email neste momento. Tente novamente mais tarde."
+  "passwordResetUnexpectedError": "Não foi possível enviar o email neste momento. Tente novamente mais tarde.",
+  "photo": "Foto",
+  "selectPhoto": "Selecionar Foto",
+  "uploading": "A fazer upload...",
+  "fileTooLarge": "Ficheiro muito grande (máximo 5MB)",
+  "invalidFileType": "Tipo de ficheiro inválido. Selecione uma imagem.",
+  "photoUploadedSuccessfully": "Foto carregada com sucesso!",
+  "photoUploadFailed": "Falha ao carregar foto. Tente novamente."
 } 
