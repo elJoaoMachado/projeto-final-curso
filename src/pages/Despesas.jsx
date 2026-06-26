@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const CARD_WIDTH = 220;
-const CARD_HEIGHT = 280;
+const CARD_HEIGHT = 200;
 
 const Despesas = () => {
   const [despesas, setDespesas] = useState([]);
@@ -229,6 +229,10 @@ const Despesas = () => {
       setError(t('pleaseSelectExpenseDate'));
       return;
     }
+    if (!newDespesa.arquivo) {
+      setError(t('attachReceipt'));
+      return;
+    }
 
     try {
       setLoading(true);
@@ -332,11 +336,11 @@ const Despesas = () => {
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
           {t('expenses')}
         </Typography>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} style={{ display: 'flex', alignItems: 'center' }}>
           <Button
             variant="contained"
             color="primary"
@@ -480,23 +484,22 @@ const Despesas = () => {
                             </CardContent>
                             <CardActions sx={{ justifyContent: 'space-between', p: 1, pt: 0 }}>
                               <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                {despesa.arquivoURL && (
-                                  <Button
-                                    variant="text"
-                                    color="primary"
-                                    size="small"
-                                    onClick={() => window.open(despesa.arquivoURL, '_blank')}
-                                    sx={{
-                                      textTransform: 'none',
-                                      fontSize: '0.75rem',
-                                      '&:hover': {
-                                        backgroundColor: 'rgba(26, 35, 126, 0.04)',
-                                      },
-                                    }}
-                                  >
-                                    {t('viewReceipt')}
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="text"
+                                  color="primary"
+                                  size="small"
+                                  disabled={!despesa.arquivoURL}
+                                  onClick={() => despesa.arquivoURL && window.open(despesa.arquivoURL, '_blank')}
+                                  sx={{
+                                    textTransform: 'none',
+                                    fontSize: '0.75rem',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(26, 35, 126, 0.04)',
+                                    },
+                                  }}
+                                >
+                                  {t('viewReceipt')}
+                                </Button>
                               </Box>
                               {(isAdmin || despesa.userId === auth.currentUser?.uid) && (
                                 <Tooltip title={t('delete')}>
@@ -643,8 +646,8 @@ const Despesas = () => {
                 disabled={loading}
                 startIcon={<DescriptionIcon />}
                 sx={{
-                  borderColor: '#1a237e',
-                  color: '#1a237e',
+                  borderColor: !newDespesa.arquivo && submitAttempted ? '#d32f2f' : '#1a237e',
+                  color: !newDespesa.arquivo && submitAttempted ? '#d32f2f' : '#1a237e',
                   '&:hover': {
                     borderColor: '#283593',
                     backgroundColor: 'rgba(26, 35, 126, 0.04)',
@@ -659,6 +662,11 @@ const Despesas = () => {
                   onChange={handleFileChange}
                 />
               </Button>
+              {!newDespesa.arquivo && submitAttempted && (
+                <Typography variant="caption" sx={{ color: '#d32f2f', display: 'block', mt: 0.5 }}>
+                  * {t('attachReceipt')}
+                </Typography>
+              )}
 
               {uploadProgress > 0 && (
                 <Box sx={{ width: '100%', mt: 2 }}>

@@ -165,6 +165,8 @@
   "passwordResetUnexpectedError": "Não foi possível enviar o email neste momento. Tente novamente mais tarde.",
   "photo": "Foto",
   "selectPhoto": "Selecionar Foto",
+  "uploadPhoto": "Carregar Foto",
+  "profilePhoto": "Foto do Perfil",
   "uploading": "A fazer upload...",
   "fileTooLarge": "Ficheiro muito grande (máximo 5MB)",
   "invalidFileType": "Tipo de ficheiro inválido. Selecione uma imagem.",

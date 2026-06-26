@@ -199,7 +199,7 @@ export default function PaginaAusencias() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={i18n.language === 'pt' ? 'pt' : 'en'}>
       <Box sx={{ mt: 1, py: 0, px: 0, width: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, mb: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
             {t('absences')}
           </Typography>

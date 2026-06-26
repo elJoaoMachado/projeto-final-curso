@@ -3,11 +3,12 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, IconButton, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, Button, Switch, FormControlLabel, Snackbar, Alert,
-  TablePagination, Box, Typography, Chip, Skeleton, TableSortLabel
+  TablePagination, Box, Typography, Chip, Skeleton, TableSortLabel, Avatar, CircularProgress
 } from '@mui/material';
-import { Edit, Delete, Search, Add } from '@mui/icons-material';
+import { Edit, Delete, Search, Add, CloudUpload } from '@mui/icons-material';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
-import { db } from '../FirebaseConfig';
+import { db, storage } from '../FirebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Select, MenuItem, InputLabel, FormControl } from '@mui/material';
@@ -33,6 +34,10 @@ function Colaboradores() {
   const departamentos = ['HR', 'Finance', 'Technology'];
   const [showAdminSnackbar, setShowAdminSnackbar] = React.useState(false);
   const { t } = useTranslation();
+  const [uploading, setUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState('');
+  const [uploadSuccess, setUploadSuccess] = React.useState('');
+  const [uploadingMode, setUploadingMode] = React.useState(null); // 'new' or 'edit'
 
 
   // Load employees from the 'users' collection
@@ -89,6 +94,78 @@ function Colaboradores() {
     setFilteredRows(filtered);
     setPage(0);
   }, [searchTerm, rows]);
+
+  const handlePhotoUpload = async (event, isNewEmployee = true) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError(t('fileTooLarge'));
+      return;
+    }
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      setUploadError(t('invalidFileType'));
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess('');
+    setUploadingMode(isNewEmployee ? 'new' : 'edit');
+
+    try {
+      const timestamp = Date.now();
+      const filename = `employee_${timestamp}_${file.name}`;
+      const storageRef = ref(storage, `employee-photos/${filename}`);
+
+      // Tentar upload para Firebase Storage
+      try {
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        if (isNewEmployee) {
+          setNewEmployee(prev => ({ ...prev, photoURL: downloadURL, photoStorageType: 'firebase' }));
+        } else {
+          setSelectedEmployee(prev => ({ ...prev, photoURL: downloadURL, photoStorageType: 'firebase' }));
+        }
+        setUploadSuccess(t('photoUploadedSuccessfully'));
+      } catch (firebaseError) {
+        console.error('Firebase upload error:', firebaseError);
+        
+        // Fallback: armazenar foto em localStorage
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataURL = e.target.result;
+          if (isNewEmployee) {
+            setNewEmployee(prev => ({ ...prev, photoURL: dataURL, photoStorageType: 'localStorage' }));
+          } else {
+            setSelectedEmployee(prev => ({ ...prev, photoURL: dataURL, photoStorageType: 'localStorage' }));
+          }
+          setUploadSuccess(t('photoUploadedSuccessfully'));
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(t('photoUploadFailed'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const getPhotoURL = (employeeData) => {
+    if (!employeeData?.photoURL) return null;
+    
+    // Se for 'local' ou localStorage, buscar do localStorage
+    if (employeeData.photoStorageType === 'localStorage' || employeeData.photoURL?.startsWith('data:')) {
+      return employeeData.photoURL;
+    }
+    
+    // Caso contrário, retornar a URL (Firebase ou outro)
+    return employeeData.photoURL;
+  };
 
   const handleAddEmployee = async () => {
     if (!newEmployee?.email || !newEmployee?.name) {
@@ -200,7 +277,7 @@ function Colaboradores() {
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontFamily: 'Poppins, sans-serif', ml: 0 }}>
           {t('employees')}
         </Typography>
@@ -309,13 +386,44 @@ function Colaboradores() {
               value={newEmployee.trainings || ''} 
               onChange={(e) => handleNewEmployeeChange('trainings', e.target.value)} 
             />
-            <TextField 
-              label={t('photoUrl')} 
-              fullWidth 
-              margin="dense" 
-              value={newEmployee.photoURL || ''} 
-              onChange={(e) => handleNewEmployeeChange('photoURL', e.target.value)} 
-            />
+            {/* Photo Upload Section */}
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                {t('profilePhoto')}
+              </Typography>
+              {newEmployee.photoURL && (
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Avatar
+                    src={getPhotoURL(newEmployee)}
+                    alt="Preview"
+                    sx={{ width: 80, height: 80, border: '2px solid primary.main' }}
+                  />
+                </Box>
+              )}
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<CloudUpload />}
+                fullWidth
+                disabled={uploading && uploadingMode === 'new'}
+                sx={{ textTransform: 'none' }}
+              >
+                {uploading && uploadingMode === 'new' ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                {uploading && uploadingMode === 'new' ? t('uploading') : t('uploadPhoto')}
+                <input
+                  hidden
+                  accept="image/*"
+                  type="file"
+                  onChange={(e) => handlePhotoUpload(e, true)}
+                />
+              </Button>
+              {uploadError && uploadingMode === 'new' && (
+                <Alert severity="error" sx={{ mt: 1 }}>{uploadError}</Alert>
+              )}
+              {uploadSuccess && uploadingMode === 'new' && (
+                <Alert severity="success" sx={{ mt: 1 }}>{uploadSuccess}</Alert>
+              )}
+            </Box>
             <TextField 
               label={t('password')} 
               fullWidth 
@@ -533,13 +641,44 @@ function Colaboradores() {
               value={selectedEmployee.trainings || ''} 
               onChange={(e) => handleEditChange('trainings', e.target.value)} 
             />
-            <TextField 
-              label={t('photoUrl')} 
-              fullWidth 
-              margin="dense" 
-              value={selectedEmployee.photoURL || ''} 
-              onChange={(e) => handleEditChange('photoURL', e.target.value)} 
-            />
+            {/* Photo Upload Section */}
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                {t('profilePhoto')}
+              </Typography>
+              {selectedEmployee.photoURL && (
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Avatar
+                    src={getPhotoURL(selectedEmployee)}
+                    alt="Preview"
+                    sx={{ width: 80, height: 80, border: '2px solid primary.main' }}
+                  />
+                </Box>
+              )}
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<CloudUpload />}
+                fullWidth
+                disabled={uploading && uploadingMode === 'edit'}
+                sx={{ textTransform: 'none' }}
+              >
+                {uploading && uploadingMode === 'edit' ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                {uploading && uploadingMode === 'edit' ? t('uploading') : t('uploadPhoto')}
+                <input
+                  hidden
+                  accept="image/*"
+                  type="file"
+                  onChange={(e) => handlePhotoUpload(e, false)}
+                />
+              </Button>
+              {uploadError && uploadingMode === 'edit' && (
+                <Alert severity="error" sx={{ mt: 1 }}>{uploadError}</Alert>
+              )}
+              {uploadSuccess && uploadingMode === 'edit' && (
+                <Alert severity="success" sx={{ mt: 1 }}>{uploadSuccess}</Alert>
+              )}
+            </Box>
             <TextField 
               label={t('other')} 
               fullWidth 

@@ -15,8 +15,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/pt';
 import 'dayjs/locale/en';
 
-const HOME_CARD_WIDTH = 520;
-const HOME_CARD_HEIGHT = 640;
+const HOME_CARD_HEIGHT = 720;
 
 const Perfil = () => {
   const [userData, setUserData] = useState(null);
@@ -187,34 +186,27 @@ const Perfil = () => {
   }
 
   return (
-    <Box sx={{ py: 2, px: 2, minHeight: '100vh', height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, px: 2, mb: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontFamily: "'Poppins', sans-serif" }}>
-          {t('homePage')}
-        </Typography>
-      </Box>
+    <Box sx={{ py: 2, minHeight: '100vh' }}>
+      {/* Two-column layout with guaranteed equal widths */}
+      <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
 
-      <Box>
-        <Grid container spacing={3} alignItems="stretch" justifyContent="center" sx={{ minHeight: '60vh', height: '100%' }}>
-          <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Box sx={{ height: '100%' }}>
+        {/* Left column: title + profile card */}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontFamily: "'Poppins', sans-serif" }}>
+            {t('homePage')}
+          </Typography>
               <Paper
                 elevation={8}
                 sx={{
                   p: { xs: 3, md: 5 },
                   borderRadius: 4,
                   background: theme.palette.background.paper,
-                  minHeight: { xs: 520, md: `${HOME_CARD_HEIGHT}px` },
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   boxShadow: theme.shadows[4],
-                  height: { xs: 'auto', md: `${HOME_CARD_HEIGHT}px` },
-                  width: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
-                  maxWidth: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
-                  mx: 'auto',
-                  flex: 1,
+                  height: `${HOME_CARD_HEIGHT}px`,
                 }}
               >
                 <Box>
@@ -284,33 +276,26 @@ const Perfil = () => {
                   <DefinirSenhaButton email={userData.email} />
                 </Box>
               </Paper>
-            </Box>
-          </Grid>
+        </Box>
 
-          <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Box sx={{ height: '100%' }}>
+        {/* Right column: ghost title + calendar card */}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="h4" sx={{ visibility: 'hidden', fontFamily: "'Poppins', sans-serif" }}>placeholder</Typography>
               <Paper
                 elevation={8}
                 sx={{
                   p: { xs: 3, md: 5 },
                   borderRadius: 4,
                   background: theme.palette.background.paper,
-                  minHeight: { xs: 520, md: `${HOME_CARD_HEIGHT}px` },
                   display: 'flex',
                   flexDirection: 'column',
                   boxShadow: theme.shadows[4],
-                  flex: 1,
-                  height: { xs: 'auto', md: `${HOME_CARD_HEIGHT}px` },
-                  width: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
-                  maxWidth: { xs: '100%', md: `${HOME_CARD_WIDTH}px` },
-                  mx: 'auto',
+                  height: `${HOME_CARD_HEIGHT}px`,
                 }}
               >
-                <Grid container spacing={0} alignItems="center" justifyContent="center" sx={{ flex: 1, height: '100%' }}>
-                  <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <Card sx={{ background: theme.palette.action.hover, width: '100%', maxWidth: 430, minHeight: { xs: 420, md: 500 }, display: 'flex', flexDirection: 'column' }}>
-                      <CardContent sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Box sx={{ width: '100%', maxWidth: 500, mx: 'auto' }}>
+                    <Card sx={{ background: theme.palette.action.hover, width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ width: '100%' }}>
                           <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 2, fontFamily: "'Poppins', sans-serif", textAlign: 'center' }}>
                             {t('weeklyAbsenceCalendar')}
                           </Typography>
@@ -373,12 +358,9 @@ const Perfil = () => {
                         </Box>
                       </CardContent>
                     </Card>
-                  </Grid>
-                </Grid>
               </Paper>
-            </Box>
-          </Grid>
-        </Grid>
+        </Box>
+
       </Box>
 
       <Dialog open={editing} onClose={handleCancelEdit} maxWidth="sm" fullWidth>

@@ -121,9 +121,9 @@ const AppContent = () => {
 
         {!hideHeader && (
           <AppBar position="fixed" sx={{ boxShadow: themeConfig.shadows[1], borderBottom: `1px solid ${themeConfig.palette.divider}` }}>
-            <Toolbar sx={{ minHeight: '60px !important', gap: 1 }}>
-              <Box component="img" src={logo} alt="Logo" sx={{ height: 26, mr: 0.5 }} />
-              <Stack direction="row" spacing={0.5} sx={{ ml: 1, overflowX: 'auto', flexWrap: 'nowrap', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
+            <Toolbar sx={{ minHeight: '60px !important', gap: 1, alignItems: 'center' }}>
+              <Box component="img" src={logo} alt="Logo" sx={{ height: 26, mr: 0.5, display: 'block' }} />
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 1, overflowX: 'auto', flexWrap: 'nowrap', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
                 {navItems.map(({ text, icon, path }) => (
                   <Button
                     key={path}
@@ -191,7 +191,7 @@ const AppContent = () => {
               minHeight: '100vh',
             }}
           >
-            <Container maxWidth={false} sx={{ maxWidth: '1220px', px: { xs: 0.5, md: 1.5 } }}>
+            <Container maxWidth={false} sx={{ maxWidth: '1600px', px: { xs: 0.5, md: 2 } }}>
               {animatedRoutes}
             </Container>
           </Box>
