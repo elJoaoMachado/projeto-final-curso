@@ -148,6 +148,7 @@
   "errorLoadingPdfPreview": "Error loading PDF preview.",
   "confirmDeletion": "Confirm Deletion",
   "confirmDeleteFileText": "Are you sure you want to delete this file? This action cannot be undone.",
+  "confirmDeleteExpenseText": "Are you sure you want to delete this expense? This action cannot be undone.",
   "uploadPdf": "Upload Report",
   "fileTooLargeMaxSize": "File is too large. Maximum size allowed: {{size}}MB.",
   "mustBeLoggedInAddExpense": "You need to be logged in to add an expense.",

@@ -4,7 +4,7 @@ import {
   DialogActions, DialogContent, DialogContentText,
   DialogTitle, Card, CardContent, CardMedia, CardActions,
   CircularProgress, Alert, Snackbar, FormControl,
-  InputLabel, Select, MenuItem, TablePagination, Skeleton
+  InputLabel, Select, MenuItem, TablePagination, Skeleton, IconButton, Tooltip
 } from "@mui/material";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -14,7 +14,7 @@ import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
-import { Add as AddIcon, PictureAsPdf, Download as DownloadIcon } from '@mui/icons-material';
+import { Add as AddIcon, PictureAsPdf, Download as DownloadIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -496,7 +496,7 @@ const Relatorios = () => {
                 <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
                   <Card sx={{ width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`, maxWidth: `${CARD_WIDTH}px`, borderRadius: 2, boxShadow: 2, height: `${CARD_HEIGHT}px`, minHeight: `${CARD_HEIGHT}px`, maxHeight: `${CARD_HEIGHT}px`, display: 'flex', flexDirection: 'column' }}>
                     <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+                      <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 0 }}>
                         {fileObj.originalName || fileObj.name || t('documentN', { index: index + 1 })}
                       </Typography>
                       {isAdmin && (
@@ -530,15 +530,23 @@ const Relatorios = () => {
                       >
                         {t('download')}
                       </Button>
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => setFileToDelete(fileObj)}
-                        sx={{ marginLeft: 'auto' }}
-                        disabled={loading}
-                      >
-                        {t('delete')}
-                      </Button>
+                      <Tooltip title={t('delete')}>
+                        <span style={{ marginLeft: 'auto' }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => setFileToDelete(fileObj)}
+                            disabled={loading}
+                            sx={{
+                              color: '#d32f2f',
+                              '&:hover': {
+                                backgroundColor: 'rgba(211, 47, 47, 0.04)',
+                              },
+                            }}
+                          >
+                            <DeleteIcon sx={{ fontSize: '1.2rem' }} />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </CardActions>
                   </Card>
                 </Grid>

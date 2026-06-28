@@ -147,6 +147,7 @@
   "errorLoadingPdfPreview": "Erro ao carregar pré-visualização do PDF.",
   "confirmDeletion": "Confirmar Eliminação",
   "confirmDeleteFileText": "Tem a certeza de que pretende eliminar este ficheiro? Esta ação não pode ser desfeita.",
+  "confirmDeleteExpenseText": "Tem a certeza de que pretende eliminar esta despesa? Esta ação não pode ser desfeita.",
   "uploadPdf": "Carregar Relatório",
   "fileTooLargeMaxSize": "O ficheiro é demasiado grande. Tamanho máximo permitido: {{size}}MB.",
   "mustBeLoggedInAddExpense": "Tem de iniciar sessão para adicionar uma despesa.",

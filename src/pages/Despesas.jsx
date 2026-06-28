@@ -1,23 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Grid, Typography, Button, Dialog, DialogActions, DialogContent,
-  DialogTitle, Card, CardContent, CardActions,
+  DialogTitle, DialogContentText, Card, CardContent, CardMedia, CardActions,
   TextField, MenuItem, CircularProgress, Alert, Snackbar, LinearProgress,
   Paper, IconButton, Tooltip, FormControl, InputLabel, Select, TablePagination, Skeleton
 } from "@mui/material";
+import { Worker, Viewer } from '@react-pdf-viewer/core';
+import '@react-pdf-viewer/core/lib/styles/index.css';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from '../FirebaseConfig';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
 import { motion } from 'framer-motion';
-import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Description as DescriptionIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const CARD_WIDTH = 220;
-const CARD_HEIGHT = 200;
+const CARD_WIDTH = 360;
+const CARD_HEIGHT = 360;
 
 const Despesas = () => {
   const [despesas, setDespesas] = useState([]);
@@ -42,6 +44,7 @@ const Despesas = () => {
   const auth = getAuth();
   const [showAdminSnackbar, setShowAdminSnackbar] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
   const { t } = useTranslation();
 
   const months = [
@@ -193,6 +196,8 @@ const Despesas = () => {
       );
     }
 
+    filtered = [...filtered].sort((a, b) => b.expenseDate.getTime() - a.expenseDate.getTime());
+
     setFilteredDespesas(filtered);
     setPage(0);
   }, [searchFilters, despesas]);
@@ -320,6 +325,35 @@ const Despesas = () => {
     }
   };
 
+  const handleDownloadReceipt = async (expense) => {
+    if (!expense?.arquivoURL) return;
+
+    try {
+      const response = await fetch(expense.arquivoURL);
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `receipt-${expense.id || Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (downloadError) {
+      setError(t('errorDownloadingFile'));
+    }
+  };
+
+  const handleDeleteExpense = async () => {
+    if (!expenseToDelete) return;
+    await handleDelete(expenseToDelete.id, expenseToDelete.arquivoURL);
+    setExpenseToDelete(null);
+  };
+
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -435,8 +469,8 @@ const Despesas = () => {
         {loading && filteredDespesas.length === 0 ? (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
             {Array.from({ length: 6 }).map((_, idx) => (
-              <Box key={idx} sx={{ display: 'flex', justifyContent: 'center', flex: '0 1 220px' }}>
-                <Skeleton variant="rounded" height={280} width={220} />
+              <Box key={idx} sx={{ display: 'flex', justifyContent: 'center', flex: `0 1 ${CARD_WIDTH}px` }}>
+                <Skeleton variant="rounded" height={CARD_HEIGHT} width={CARD_WIDTH} />
               </Box>
             ))}
           </Box>
@@ -446,7 +480,7 @@ const Despesas = () => {
                 {filteredDespesas
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((despesa) => (
-                    <Box key={despesa.id} sx={{ display: 'flex', justifyContent: 'center', flex: '0 1 220px' }}>
+                    <Box key={despesa.id} sx={{ display: 'flex', justifyContent: 'center', flex: `0 1 ${CARD_WIDTH}px` }}>
                       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                         <Paper
                           elevation={8}
@@ -464,11 +498,11 @@ const Despesas = () => {
                           }}
                         >
                           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <CardContent sx={{ pb: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <CardContent sx={{ pb: 0.5, flexGrow: 1 }}>
                               <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 0 }}>
                                 {t('expenseType_' + (['Food','Transport','Accommodation','Other'].includes(despesa.tipo) ? despesa.tipo.toLowerCase() : 'other'))}
                               </Typography>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.875rem' }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, fontSize: '0.875rem', mt: 0.5 }}>
                                 <Typography variant="body2" sx={{ mb: 0 }}>
                                   <strong>{t('value')}:</strong> {despesa.valor} €
                                 </Typography>
@@ -482,30 +516,41 @@ const Despesas = () => {
                                 )}
                               </Box>
                             </CardContent>
-                            <CardActions sx={{ justifyContent: 'space-between', p: 1, pt: 0 }}>
-                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <CardMedia sx={{ height: 120, overflow: 'hidden' }}>
+                              {despesa.arquivoURL ? (
+                                <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+                                  <Viewer
+                                    fileUrl={despesa.arquivoURL}
+                                    onError={(previewError) => {
+                                      console.error('PDF Viewer Error:', previewError);
+                                      setError(t('errorLoadingPdfPreview'));
+                                    }}
+                                  />
+                                </Worker>
+                              ) : (
+                                <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {t('noPdfFilesFound')}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </CardMedia>
+                            <CardActions sx={{ justifyContent: 'space-between', p: 1, pt: 0.5 }}>
+                              <Box>
                                 <Button
-                                  variant="text"
-                                  color="primary"
-                                  size="small"
+                                  variant="outlined"
+                                  startIcon={<DownloadIcon />}
                                   disabled={!despesa.arquivoURL}
-                                  onClick={() => despesa.arquivoURL && window.open(despesa.arquivoURL, '_blank')}
-                                  sx={{
-                                    textTransform: 'none',
-                                    fontSize: '0.75rem',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(26, 35, 126, 0.04)',
-                                    },
-                                  }}
+                                  onClick={() => handleDownloadReceipt(despesa)}
                                 >
-                                  {t('viewReceipt')}
+                                  {t('download')}
                                 </Button>
                               </Box>
                               {(isAdmin || despesa.userId === auth.currentUser?.uid) && (
                                 <Tooltip title={t('delete')}>
                                   <IconButton
                                     size="small"
-                                    onClick={() => handleDelete(despesa.id, despesa.arquivoURL)}
+                                    onClick={() => setExpenseToDelete(despesa)}
                                     sx={{
                                       color: '#d32f2f',
                                       '&:hover': {
@@ -704,6 +749,36 @@ const Despesas = () => {
               sx={{ fontWeight: 'bold' }}
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : t('save')}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={Boolean(expenseToDelete)}
+          onClose={() => setExpenseToDelete(null)}
+        >
+          <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('confirmDeletion')}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {t('confirmDeleteExpenseText')}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setExpenseToDelete(null)}
+              color="primary"
+              disabled={loading}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={handleDeleteExpense}
+              color="error"
+              variant="contained"
+              sx={{ fontWeight: 'bold' }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : t('delete')}
             </Button>
           </DialogActions>
         </Dialog>
