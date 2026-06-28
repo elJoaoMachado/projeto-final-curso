@@ -15,9 +15,18 @@ const FloatingLangButton = ({ inHeader = false }) => {
       <Button
         onClick={toggleLang}
         variant="outlined"
-        color="primary"
         size="small"
-        sx={{ fontWeight: 700, minWidth: 56 }}
+        sx={{
+          fontWeight: 700,
+          minWidth: 56,
+          color: '#fff',
+          borderColor: 'rgba(255, 255, 255, 0.45)',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          '&:hover': {
+            borderColor: 'rgba(255, 255, 255, 0.7)',
+            backgroundColor: 'rgba(79, 140, 255, 0.3)',
+          },
+        }}
       >
         {isPT ? 'EN' : 'PT'}
       </Button>

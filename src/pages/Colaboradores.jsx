@@ -197,7 +197,8 @@ function Colaboradores() {
   const handleSave = async () => {
     try {
       const ref = doc(db, 'users', selectedEmployee.docId);
-      await updateDoc(ref, { ...selectedEmployee });
+      const { emailLocked, ...employeeData } = selectedEmployee;
+      await updateDoc(ref, { ...employeeData, email: emailLocked || selectedEmployee.email });
       setSelectedEmployee(null);
       await fetchEmployees();
       setSuccess(t('employeeUpdatedSuccessfully'));
@@ -523,7 +524,7 @@ function Colaboradores() {
                   </TableCell>
                   {isAdmin && (
                     <TableCell align="right">
-                      <IconButton onClick={() => setSelectedEmployee(row)}>
+                      <IconButton onClick={() => setSelectedEmployee({ ...row, emailLocked: row.email })}>
                         <Edit />
                       </IconButton>
                       <IconButton 
@@ -579,7 +580,7 @@ function Colaboradores() {
               fullWidth 
               margin="dense" 
               value={selectedEmployee.email} 
-              onChange={(e) => handleEditChange('email', e.target.value)} 
+              disabled
             />
             <TextField 
               label={t('admissionDate')} 
@@ -620,6 +621,39 @@ function Colaboradores() {
               value={selectedEmployee.profileNumber || ''} 
               onChange={(e) => handleEditChange('profileNumber', e.target.value)} 
             />
+            {/* Photo Upload Section */}
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>{t('photo')}</Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={uploading && uploadingMode === 'edit' ? <CircularProgress size={20} /> : <CloudUpload />}
+                  disabled={uploading && uploadingMode === 'edit'}
+                >
+                  {uploading && uploadingMode === 'edit' ? t('uploading') : t('selectPhoto')}
+                  <input
+                    hidden
+                    accept="image/*"
+                    type="file"
+                    onChange={(e) => handlePhotoUpload(e, false)}
+                  />
+                </Button>
+                {selectedEmployee.photoURL && (
+                  <Avatar
+                    src={getPhotoURL(selectedEmployee)}
+                    alt="Preview"
+                    sx={{ width: 48, height: 48 }}
+                  />
+                )}
+              </Box>
+              {uploadError && uploadingMode === 'edit' && (
+                <Alert severity="error" sx={{ mt: 1 }}>{uploadError}</Alert>
+              )}
+              {uploadSuccess && uploadingMode === 'edit' && (
+                <Alert severity="success" sx={{ mt: 1 }}>{uploadSuccess}</Alert>
+              )}
+            </Box>
             <TextField 
               label={t('scales')} 
               fullWidth 
@@ -641,50 +675,10 @@ function Colaboradores() {
               value={selectedEmployee.trainings || ''} 
               onChange={(e) => handleEditChange('trainings', e.target.value)} 
             />
-            {/* Photo Upload Section */}
-            <Box sx={{ mt: 2, mb: 2 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                {t('profilePhoto')}
-              </Typography>
-              {selectedEmployee.photoURL && (
-                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-                  <Avatar
-                    src={getPhotoURL(selectedEmployee)}
-                    alt="Preview"
-                    sx={{ width: 80, height: 80, border: '2px solid primary.main' }}
-                  />
-                </Box>
-              )}
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<CloudUpload />}
-                fullWidth
-                disabled={uploading && uploadingMode === 'edit'}
-                sx={{ textTransform: 'none' }}
-              >
-                {uploading && uploadingMode === 'edit' ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
-                {uploading && uploadingMode === 'edit' ? t('uploading') : t('uploadPhoto')}
-                <input
-                  hidden
-                  accept="image/*"
-                  type="file"
-                  onChange={(e) => handlePhotoUpload(e, false)}
-                />
-              </Button>
-              {uploadError && uploadingMode === 'edit' && (
-                <Alert severity="error" sx={{ mt: 1 }}>{uploadError}</Alert>
-              )}
-              {uploadSuccess && uploadingMode === 'edit' && (
-                <Alert severity="success" sx={{ mt: 1 }}>{uploadSuccess}</Alert>
-              )}
-            </Box>
             <TextField 
               label={t('other')} 
               fullWidth 
               margin="dense" 
-              multiline
-              minRows={2}
               value={selectedEmployee.otherInfo || ''} 
               onChange={(e) => handleEditChange('otherInfo', e.target.value)} 
             />

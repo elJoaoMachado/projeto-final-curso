@@ -12,12 +12,28 @@ import { auth } from "./FirebaseConfig";
 import logo from "./pages/logoTechnoSoftware.png";
 import FloatingLangButton from './FloatingLangButton';
 
-const Perfil = lazy(() => import("./pages/Perfil"));
-const Ausencias = lazy(() => import("./pages/Ausencias"));
-const Relatorios = lazy(() => import("./pages/Relatorios"));
-const Colaboradores = lazy(() => import("./pages/Colaboradores"));
-const Despesas = lazy(() => import("./pages/Despesas"));
-const LoginPage = lazy(() => import("./pages/Login"));
+const lazyRetry = (importer) =>
+  lazy(() =>
+    importer().catch((error) => {
+      const isChunkError = /ChunkLoadError|Loading chunk [\s\S]* failed/i.test(String(error));
+      const key = 'lazy-retry-once';
+
+      if (isChunkError && !sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, 'true');
+        window.location.reload();
+      }
+
+      sessionStorage.removeItem(key);
+      throw error;
+    })
+  );
+
+const Perfil = lazyRetry(() => import("./pages/Perfil"));
+const Ausencias = lazyRetry(() => import("./pages/Ausencias"));
+const Relatorios = lazyRetry(() => import("./pages/Relatorios"));
+const Colaboradores = lazyRetry(() => import("./pages/Colaboradores"));
+const Despesas = lazyRetry(() => import("./pages/Despesas"));
+const LoginPage = lazyRetry(() => import("./pages/Login"));
 
 const classicFont = "'Poppins', sans-serif";
 const primaryColor = "#1a237e";

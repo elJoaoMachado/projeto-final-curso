@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Button, Typography, Box, MenuItem, 
   Dialog, DialogTitle, DialogContent, DialogActions, 
-  FormControl, InputLabel, Select, Snackbar, Alert,
+  FormControl, InputLabel, Select, Snackbar, Alert, Autocomplete, TextField,
   Skeleton
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -18,6 +18,7 @@ import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { Add } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@mui/material/styles';
 import 'dayjs/locale/pt';
 import ptLocale from '@fullcalendar/core/locales/pt';
 
@@ -41,6 +42,8 @@ export default function PaginaAusencias() {
   const [absenceToDelete, setAbsenceToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const { t, i18n } = useTranslation();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   // Update dayjs locale according to the language
   React.useEffect(() => {
@@ -212,7 +215,44 @@ export default function PaginaAusencias() {
             {t('registerAbsence')}
           </Button>
         </Box>
-        <Box mb={2}>
+        <Box
+          mb={2}
+          sx={{
+            '& .fc': {
+              backgroundColor: isDark ? '#1f2942' : '#fff',
+              color: isDark ? '#e7ecf7' : 'inherit',
+              borderRadius: 3,
+              boxShadow: 3,
+              overflow: 'hidden',
+            },
+            '& .fc .fc-header-toolbar': {
+              padding: '14px 16px 0',
+              marginBottom: '10px',
+            },
+            '& .fc .fc-scrollgrid': {
+              backgroundColor: isDark ? '#1f2942' : '#fff',
+              borderColor: isDark ? 'rgba(165, 185, 225, 0.25)' : '#e4e7ec',
+            },
+            '& .fc th, & .fc td': {
+              borderColor: isDark ? 'rgba(165, 185, 225, 0.2)' : '#e4e7ec',
+            },
+            '& .fc .fc-col-header-cell-cushion, & .fc .fc-daygrid-day-number, & .fc .fc-toolbar-title': {
+              color: isDark ? '#dbe4fb' : 'inherit',
+            },
+            '& .fc .fc-daygrid-day.fc-day-today': {
+              backgroundColor: isDark ? 'rgba(79, 140, 255, 0.2)' : 'rgba(255, 220, 40, 0.18)',
+            },
+            '& .fc .fc-button-primary': {
+              boxShadow: 'none',
+            },
+            '& .fc .fc-button-primary:not(:disabled)': {
+              borderColor: isDark ? 'rgba(165, 185, 225, 0.35)' : undefined,
+            },
+            '& .fc .fc-button-primary:focus': {
+              boxShadow: 'none',
+            },
+          }}
+        >
           {isLoading ? (
             <Skeleton variant="rounded" height={650} />
           ) : (
@@ -255,22 +295,16 @@ export default function PaginaAusencias() {
           <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>{t('registerAbsence')}</DialogTitle>
           <DialogContent>
             <Box display="flex" flexDirection="column" gap={1.5} sx={{ mt: 1 }}>
-              <FormControl fullWidth>
-                <InputLabel>{t('employee')}</InputLabel>
-                <Select
-                  value={nome}
-                  label={t('employee')}
-                  onChange={(e) => setNome(e.target.value)}
-                >
-                  {users
-                    .filter(user => user.email === auth.currentUser.email)
-                    .map(user => (
-                      <MenuItem key={user.id} value={user.name}>
-                        {user.name}
-                      </MenuItem>
-                    ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                options={isAdmin ? users : users.filter(user => user.email === auth.currentUser?.email)}
+                value={(isAdmin ? users : users.filter(user => user.email === auth.currentUser?.email)).find(user => user.name === nome) || null}
+                onChange={(_, selectedUser) => setNome(selectedUser?.name || '')}
+                getOptionLabel={(option) => option?.name || ''}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                renderInput={(params) => (
+                  <TextField {...params} label={t('employee')} fullWidth />
+                )}
+              />
               <DatePicker
                 label={t('absenceDate')}
                 value={data}

@@ -16,6 +16,7 @@ import 'dayjs/locale/pt';
 import 'dayjs/locale/en';
 
 const HOME_CARD_HEIGHT = 720;
+const MAX_WEEKLY_ABSENCE_AVATARS = 8;
 
 const Perfil = () => {
   const [userData, setUserData] = useState(null);
@@ -328,7 +329,7 @@ const Perfil = () => {
                                   </Typography>
                                   {hasManyAbsences ? (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      {absences.slice(0, 4).map((absence, idx) => (
+                                      {absences.slice(0, MAX_WEEKLY_ABSENCE_AVATARS).map((absence, idx) => (
                                         <Avatar
                                           key={idx}
                                           src={absence.photoURL || ''}
@@ -338,11 +339,11 @@ const Perfil = () => {
                                           {absence.nome?.charAt(0) || '?'}
                                         </Avatar>
                                       ))}
-                                      {absences.length > 4 && (
+                                      {absences.length > MAX_WEEKLY_ABSENCE_AVATARS && (
                                         <Avatar
                                           sx={{ width: 28, height: 28, fontSize: '0.7rem', background: theme.palette.primary.main, border: `2px solid ${theme.palette.background.paper}`, boxShadow: theme.shadows[1] }}
                                         >
-                                          +{absences.length - 4}
+                                          +{absences.length - MAX_WEEKLY_ABSENCE_AVATARS}
                                         </Avatar>
                                       )}
                                     </Box>

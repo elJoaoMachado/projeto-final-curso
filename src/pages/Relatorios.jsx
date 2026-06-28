@@ -14,13 +14,21 @@ import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../FirebaseConfig';
-import { Add as AddIcon, PictureAsPdf } from '@mui/icons-material';
+import { Add as AddIcon, PictureAsPdf, Download as DownloadIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const CARD_WIDTH = 360;
 const CARD_HEIGHT = 360;
+const REPORTS_YEAR = 2026;
+
+const normalizeReportDate = (dateInput) => {
+  const parsed = new Date(dateInput || Date.now());
+  const safeDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  safeDate.setFullYear(REPORTS_YEAR);
+  return safeDate;
+};
 
 const Relatorios = () => {
   const [pdfFiles, setPdfFiles] = useState([]);
@@ -74,12 +82,14 @@ const Relatorios = () => {
         ...doc.data()
       }));
       setUsers(usersData);
+      return usersData;
     } catch (error) {
       console.error('Error loading users:', error);
+      return [];
     }
   };
 
-  const fetchPdfFiles = useCallback(async () => {
+  const fetchPdfFiles = useCallback(async (adminStatus = isAdmin, usersData = []) => {
     setLoading(true);
     setError(null);
     try {
@@ -89,35 +99,75 @@ const Relatorios = () => {
       }
 
       const storageRef = ref(storage, 'pdfs');
-      const result = await listAll(storageRef);
+      const listAllFilesRecursively = async (folderRef) => {
+        const result = await listAll(folderRef);
+        const nestedFiles = await Promise.all(result.prefixes.map((prefixRef) => listAllFilesRecursively(prefixRef)));
+        return [...result.items, ...nestedFiles.flat()];
+      };
+      const allItemRefs = await listAllFilesRecursively(storageRef);
+      const usersByUid = new Map(usersData.map((userItem) => [userItem.uid, userItem.name]));
+      const reportsSnapshot = await getDocs(collection(db, 'relatorios'));
+      const reportsByUrl = new Map();
+      const reportsByOriginalName = new Map();
+      const reportsByUserId = new Map();
+
+      reportsSnapshot.docs.forEach((reportDoc) => {
+        const reportData = reportDoc.data();
+        if (reportData.fileUrl && reportData.nome) {
+          reportsByUrl.set(reportData.fileUrl, reportData.nome);
+        }
+        if (reportData.fileName && reportData.nome) {
+          reportsByOriginalName.set(reportData.fileName, reportData.nome);
+        }
+        if (reportData.userId && reportData.nome) {
+          reportsByUserId.set(reportData.userId, reportData.nome);
+        }
+      });
       
-      const filePromises = result.items.map(async (itemRef) => {
+      const filePromises = allItemRefs.map(async (itemRef) => {
         try {
           const url = await getDownloadURL(itemRef);
           const metadata = await getMetadata(itemRef);
-          const uploadedByUid = metadata.customMetadata?.uploadedBy || t('unknown');
-          let uploadedByName = uploadedByUid;
+          const pathParts = itemRef.fullPath.split('/');
+          const uploadedByUidFromPath = pathParts.length > 2 ? pathParts[1] : t('unknown');
+          const uploadedByUid = metadata.customMetadata?.uploadedBy || uploadedByUidFromPath || t('unknown');
+          const uploadedByNameFromMetadata = metadata.customMetadata?.uploadedByName;
+          const inferredOriginalName = itemRef.name.includes('_') ? itemRef.name.substring(itemRef.name.indexOf('_') + 1) : itemRef.name;
+          let uploadedByName = uploadedByNameFromMetadata
+            || usersByUid.get(uploadedByUid)
+            || reportsByUserId.get(uploadedByUid)
+            || reportsByOriginalName.get(inferredOriginalName)
+            || t('unknown');
 
-          // Get user name from Firestore
-          if (uploadedByUid !== t('unknown')) {
+          // Fallback lookup in Firestore only if local cache did not resolve
+          if (uploadedByName === t('unknown') && uploadedByUid !== t('unknown')) {
             try {
               const userQuery = await getDocs(query(collection(db, 'users'), where('uid', '==', uploadedByUid)));
               if (!userQuery.empty) {
-                uploadedByName = userQuery.docs[0].data().name || uploadedByUid;
+                uploadedByName = userQuery.docs[0].data().name || t('unknown');
               }
             } catch (e) {
-              // If error, keep UID
+              // Ignore and keep translated unknown
             }
           }
 
-          const uploadDate = new Date(metadata.customMetadata?.uploadedAt || Date.now());
+          const uploadDate = normalizeReportDate(metadata.customMetadata?.uploadedAt || Date.now());
+          const uploadedAt = uploadDate.toISOString();
+
+          if (uploadedByName === t('unknown')) {
+            uploadedByName = reportsByUrl.get(url)
+              || reportsByOriginalName.get(inferredOriginalName)
+              || reportsByUserId.get(uploadedByUid)
+              || t('unknown');
+          }
           
           return {
             name: itemRef.name,
+            fullPath: itemRef.fullPath,
             url: url,
             uploadedBy: uploadedByName,
             uploadedByUid: uploadedByUid,
-            uploadedAt: metadata.customMetadata?.uploadedAt || t('unknownDate'),
+            uploadedAt,
             uploadDate: uploadDate,
             year: uploadDate.getFullYear(),
             month: uploadDate.getMonth()
@@ -130,7 +180,7 @@ const Relatorios = () => {
 
       const files = (await Promise.all(filePromises)).filter(file => file !== null);
       
-      if (isAdmin) {
+      if (adminStatus) {
         setPdfFiles(files);
         setFilteredFiles(files);
       } else {
@@ -156,8 +206,8 @@ const Relatorios = () => {
 
       const adminStatus = await checkAdminRole(user);
       setIsAdmin(adminStatus);
-      await loadUsers();
-      await fetchPdfFiles();
+      const usersData = await loadUsers();
+      await fetchPdfFiles(adminStatus, usersData);
     };
 
     const unsubscribe = auth.onAuthStateChanged(initializeUser);
@@ -193,6 +243,8 @@ const Relatorios = () => {
       );
     }
 
+    filtered = [...filtered].sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime());
+
     setFilteredFiles(filtered);
     setPage(0);
   }, [searchFilters, pdfFiles]);
@@ -218,48 +270,52 @@ const Relatorios = () => {
       const uploadPromises = files.map(async (file) => {
         const uniqueName = `${Date.now()}_${file.name}`;
         const storageRef = ref(storage, `pdfs/${user.uid}/${uniqueName}`);
+
+        // Get user name from Firestore
+        let userName = user.displayName || user.email?.split('@')[0] || t('unknown');
+        try {
+          const userQuery = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+          if (!userQuery.empty) {
+            userName = userQuery.docs[0].data().name || user.displayName || t('unknown');
+          }
+        } catch (e) {
+          console.error('Error getting user name:', e);
+        }
+
+        const uploadDate = normalizeReportDate(new Date());
         const metadata = {
           contentType: 'application/pdf',
           customMetadata: {
             uploadedBy: user.uid,
-            uploadedAt: new Date().toISOString()
+            uploadedByName: userName,
+            uploadedAt: uploadDate.toISOString()
           }
         };
         
         try {
           const snapshot = await uploadBytes(storageRef, file, metadata);
           const url = await getDownloadURL(snapshot.ref);
-          
-          // Get user name from Firestore
-          let userName = t('unknown');
-          try {
-            const userQuery = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-            if (!userQuery.empty) {
-              userName = userQuery.docs[0].data().name || user.displayName || t('unknown');
-            }
-          } catch (e) {
-            console.error('Error getting user name:', e);
-          }
-          
+
           // Create document in Firestore for email notification
           await addDoc(collection(db, 'relatorios'), {
             nome: userName,
             userId: user.uid,
             fileName: file.name,
             fileUrl: url,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: uploadDate.toISOString()
           });
           
           return { 
             name: uniqueName,
+            fullPath: snapshot.ref.fullPath,
             originalName: file.name,
             url: url,
-            uploadedBy: user.uid,
+            uploadedBy: userName,
             uploadedByUid: user.uid,
-            uploadedAt: new Date().toISOString(),
-            uploadDate: new Date(),
-            year: new Date().getFullYear(),
-            month: new Date().getMonth()
+            uploadedAt: uploadDate.toISOString(),
+            uploadDate: uploadDate,
+            year: uploadDate.getFullYear(),
+            month: uploadDate.getMonth()
           };
         } catch (uploadError) {
           console.error('Error uploading file:', uploadError);
@@ -280,7 +336,6 @@ const Relatorios = () => {
 
   const handleDeleteFile = async () => {
     if (!fileToDelete) return;
-    const fileRef = ref(storage, `pdfs/${fileToDelete.uploadedByUid}/${fileToDelete.name}`);
     setLoading(true);
     setError(null);
 
@@ -290,6 +345,9 @@ const Relatorios = () => {
         throw new Error(t('onlyDeleteOwnFiles'));
       }
 
+      const fileRef = fileToDelete.fullPath
+        ? ref(storage, fileToDelete.fullPath)
+        : ref(storage, fileToDelete.url);
       await deleteObject(fileRef);
       setPdfFiles((prevFiles) => prevFiles.filter((file) => !(file.name === fileToDelete.name && file.uploadedByUid === fileToDelete.uploadedByUid)));
       setSuccess(t('fileDeletedSuccessfully'));
@@ -314,6 +372,27 @@ const Relatorios = () => {
   const handleCloseSnackbar = () => {
     setSuccess('');
     setError('');
+  };
+
+  const handleDownloadFile = async (fileObj) => {
+    try {
+      const response = await fetch(fileObj.url);
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileObj.originalName || fileObj.name || 'report.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (downloadError) {
+      setError(t('errorDownloadingFile'));
+    }
   };
 
   const handleOpenUploadDialog = () => setOpenUploadDialog(true);
@@ -417,7 +496,7 @@ const Relatorios = () => {
                 <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
                   <Card sx={{ width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`, maxWidth: `${CARD_WIDTH}px`, borderRadius: 2, boxShadow: 2, height: `${CARD_HEIGHT}px`, minHeight: `${CARD_HEIGHT}px`, maxHeight: `${CARD_HEIGHT}px`, display: 'flex', flexDirection: 'column' }}>
                     <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
                         {fileObj.originalName || fileObj.name || t('documentN', { index: index + 1 })}
                       </Typography>
                       {isAdmin && (
@@ -443,6 +522,14 @@ const Relatorios = () => {
                       </Worker>
                     </CardMedia>
                     <CardActions>
+                      <Button
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        onClick={() => handleDownloadFile(fileObj)}
+                        disabled={loading}
+                      >
+                        {t('download')}
+                      </Button>
                       <Button
                         variant="outlined"
                         color="error"
